@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<project>                                  
+  <executable name="dist/default/production/JSJSJS_MIXX_SATELLITE_BOARD_201103.X.production.elf">                 
+    <memory name="program">                 
+      <units>bytes</units>                 
+      <length>2098304</length>                 
+      <used>112940</used>                     
+      <free>1985364</free>                     
+    </memory>                              
+    <memory name="data">              
+      <units>bytes</units>                 
+      <length>524288</length>                 
+      <used>8904</used>                     
+      <free>515384</free>                     
+    </memory>                              
+  </executable>                            
+</project>                                 
