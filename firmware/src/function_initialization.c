@@ -1,5 +1,5 @@
 #include "config_cocoa_general.h"
-
+extern int BOARD_ID;
 void INIT_PINS(void){
     // Init all AN pin as digital
     ANSEL_ALL = DIGITAL;
@@ -36,12 +36,23 @@ void INIT_PINS(void){
     TRISBbits.TRISB9 = 0;   // Debug LED A
     TRISBbits.TRISB10 = 0;  // Debug LED B
     
-    //test for hx711
-    TRISBbits.TRISB2 = 0;   // Digital In 0
-    TRISBbits.TRISB3 = 1;   // Digital In 1
-    //output for testing load cell
-    TRISBbits.TRISB4 = 0;   // Digital In 2 
-    TRISBbits.TRISB5 = 1;   // Digital In 3
+    
+    if(BOARD_ID==0){
+        //test for hx711
+        TRISBbits.TRISB2 = 0;   // Digital out 0
+        TRISBbits.TRISB3 = 1;   // Digital In 1
+        //output for testing load cell
+        TRISBbits.TRISB5 = 0;   // Digital out
+        //ice waste water sensor
+        TRISBbits.TRISB4 = 1;   // Digital in 
+        CNPDBbits.CNPDB4 = 1;
+    }else if(BOARD_ID==1){
+        TRISBbits.TRISB2 = 1;   // Digital In 0
+        TRISBbits.TRISB3 = 1;   // Digital In 1
+        TRISBbits.TRISB4 = 1;   // Digital In 2 
+        TRISBbits.TRISB5 = 1;   // Digital In 3
+    }
+    
     
     TRISBbits.TRISB10 = 1;  // ID Selection
     TRISBbits.TRISB11 = 1;  // ID Selection

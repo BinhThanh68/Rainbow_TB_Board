@@ -256,33 +256,33 @@ void DRINKOUT_Go(unsigned char ID, short goal_pos){
     if(ID == MODULE_LEFT_DISK){
         switch(goal_pos){
         case MOTOR_POSITION_OUTLET1:{
-            //go 822
-            send_data[10] = 0x72; //data1
+            //go 874
+            send_data[10] = 0x6A; //data1
             send_data[11] = 0x03; //data2
             send_data[12] = 0x00; //data3
             send_data[13] = 0x00; //data4
-            send_data[14] = 0xC9; //CRC1
-            send_data[15] = 0xE1; //CRC2
+            send_data[14] = 0xCC; //CRC1
+            send_data[15] = 0x81; //CRC2
         }
             break;
         case MOTOR_POSITION_OUTLET2:{
             //go 2187
-            send_data[10] = 0x8B; //data1
+            send_data[10] = 0xC5; //data1
             send_data[11] = 0x08; //data2
             send_data[12] = 0x00; //data3
             send_data[13] = 0x00; //data4
-            send_data[14] = 0x7E; //CRC1
-            send_data[15] = 0x15; //CRC2
+            send_data[14] = 0x60; //CRC1
+            send_data[15] = 0xCD; //CRC2
         }
             break;
         case MOTOR_POSITION_OUTLET3:{
             //go 3552
-            send_data[10] = 0xE0; //data1
-            send_data[11] = 0x0D; //data2
+            send_data[10] = 0x2E; //data1
+            send_data[11] = 0x0E; //data2
             send_data[12] = 0x00; //data3
             send_data[13] = 0x00; //data4
-            send_data[14] = 0x28; //CRC1
-            send_data[15] = 0x09; //CRC2
+            send_data[14] = 0x35; //CRC1
+            send_data[15] = 0x51; //CRC2
         }
             break;
         default:
@@ -493,4 +493,96 @@ void DRINKOUT_ReadTorqueStatus(unsigned char ID){
 
 long DRINK_GetWeight(){
     return HX711_get_units(1);
+}
+
+
+void ICE_Valve_Set_Lock(unsigned char lock){
+    unsigned char send_data[16];
+  
+    send_data[0] = 0xFF; //header1
+    send_data[1] = 0xFF; //header2
+    send_data[2] = 0xFD; //header3
+    send_data[3] = 0x00; //reserved
+    send_data[4] = 0x09;   //ID
+    send_data[5] = 0x09; //length1
+    send_data[6] = 0x00; //length2
+    send_data[7] = 0x03; //instruction    
+    send_data[8] = 0x74; //address1
+    send_data[9] = 0x00; //address1
+    
+    if(lock){
+        send_data[10] = 0xB0; //data1 1200
+        send_data[11] = 0x04; //data2
+        send_data[12] = 0x00; //data3
+        send_data[13] = 0x00; //data4
+        send_data[14] = 0x2E; //CRC1
+        send_data[15] = 0x49; //CRC2
+    }else{
+        send_data[10] = 0xAA; //data1  170
+        send_data[11] = 0x00; //data2
+        send_data[12] = 0x00; //data3
+        send_data[13] = 0x00; //data4
+        send_data[14] = 0x7B; //CRC1
+        send_data[15] = 0x01; //CRC2
+    }
+      
+    WriteUART4(send_data, 16);
+}
+
+void ICE_Valve_Check_Connection(){
+    unsigned char send_data[10];
+  
+    send_data[0] = 0xFF; //header1
+    send_data[1] = 0xFF; //header2
+    send_data[2] = 0xFD; //header3
+    send_data[3] = 0x00; //reserved
+    send_data[4] = 0x09; //ID
+    send_data[5] = 0x03; //length1
+    send_data[6] = 0x00; //length2
+    send_data[7] = 0x01; //instruction    
+    send_data[8] = 0x1A; //address1
+    send_data[9] = 0x6E; //address1
+   
+    WriteUART4(send_data, 10);
+}
+
+void ICE_Valve_Set_Profile(){
+    unsigned char send_data[13];
+  
+    send_data[0] = 0xFF; //header1
+    send_data[1] = 0xFF; //header2
+    send_data[2] = 0xFD; //header3
+    send_data[3] = 0x00; //reserved
+    send_data[4] = 0x09; //ID
+    send_data[5] = 0x06; //length1
+    send_data[6] = 0x00; //length2
+    send_data[7] = 0x03; //instruction    
+    send_data[8] = 0x40; //address1
+    send_data[9] = 0x00; //address1
+    send_data[10] = 0x01; //data
+    send_data[11] = 0x58; //CRC1
+    send_data[12] = 0xEE; //CRC2
+      
+    WriteUART4(send_data, 13);
+}
+
+
+void ICE_Valve_Set_Torque(){
+    unsigned char send_data[13];
+  
+    send_data[0] = 0xFF; //header1
+    send_data[1] = 0xFF; //header2
+    send_data[2] = 0xFD; //header3
+    send_data[3] = 0x00; //reserved
+    send_data[4] = 0x09; //ID
+    send_data[5] = 0x06; //length1
+    send_data[6] = 0x00; //length2
+    send_data[7] = 0x03; //instruction    
+    send_data[8] = 0x40; //address1
+    send_data[9] = 0x00; //address1
+    send_data[10] = 0x01; //data
+    send_data[11] = 0x58; //CRC1
+    send_data[12] = 0xEE; //CRC2
+      
+    WriteUART4(send_data, 13);
 }

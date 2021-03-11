@@ -12,11 +12,13 @@
 float LOADCELL_DATA;
 bool LOADCELL_ENABLE = false;
 unsigned char LOADCELL_SAMPLE_NUM = 2;
+unsigned char ICE_Wast_Water_Sensor;
 
 LAN2CAN_DATA gv;
 ST_ICE_DATA ICE_INFO;
 ST_CUP_DATA CUP_INFO;
 ST_DRINKOUT_DATA DRINKOUT_INFO;
+ICE_VALVE_DATA ICE_VALVE;
 
 unsigned char BARCODE_DATA[BARCODE_SIZE] = {0,};
 int BARCODE_LOCK = 0;
@@ -74,6 +76,7 @@ void LAN2CAN_Initialize(void) {
        HX711_begin(128);
        HX711_set_scale(2190);
        HX711_tare(3);
+       LOADCELL_ENABLE=0;
     }else if(BOARD_ID == 1){
         // Ice & Cup
         
@@ -146,20 +149,20 @@ void LAN2CAN_Tasks(void) {
 //            if(time_end !=0){
 //                if(time_end > time2){
 //                    if((((int)(TMR3) << 16) | TMR2) >= time_end){
-//                    PORTBbits.RB4 = 0;
+//                    PORTBbits.RB5 = 0;
 //                    Nop();
 //                    time1=0; time2=0; val1=0; val2=0; flowrate=0; time_end=0; LOADCELL_SAMPLE_NUM=2; 
 //                    }
 //                }else{
 //                    if( ((((int)(TMR3) << 16) | TMR2) < time2) && ((((int)(TMR3) << 16) | TMR2) >= time_end)){
-//                    PORTBbits.RB4 = 0;
+//                    PORTBbits.RB5 = 0;
 //                    Nop();
 //                    time1=0; time2=0; val1=0; val2=0; flowrate=0; time_end=0; LOADCELL_SAMPLE_NUM=2;
 //                    }
 //                }
 //            }
 //            else{
-//                PORTBbits.RB4 = 1;
+//                PORTBbits.RB5 = 1;
 //            }
 
             
@@ -188,16 +191,16 @@ void LAN2CAN_Tasks(void) {
         
         
         if(LOADCELL_DATA >= LOADCELL_THRESHOLD){
-                PORTBbits.RB4 = 0;
+                PORTBbits.RB5 = 0;
                 time1=0;time2=0;val1=0;val2=0;flowrate=0;
         }else{
-            PORTBbits.RB4 = 1;
+            PORTBbits.RB5 = 1;
         }
         }
 
     }
-      
-  
+    
+
     
     // Task
     LAN2CAN_TaskFunction(); 
@@ -480,6 +483,19 @@ int LAN2CAN_LANDataParsing(void) {
                             DRINKOUT_Go((para1&0xFF), (para2&0xFF));
                             break;
                     }
+                }else if(target==2){
+                    //ice valve
+                    switch(command){
+                        case 0:
+                            //close or open
+                            if(ICE_VALVE.lock_state){
+                                ICE_VALVE.motor.command_state = MOTOR_WAIT_DOOR_OPEN;
+                            }else{
+                                ICE_VALVE.motor.command_state = MOTOR_WAIT_DOOR_CLOSE;
+                            }
+                            ICE_Valve_Set_Lock(para1);
+                            break;
+                    }
                 }
             }
             break;
@@ -687,7 +703,7 @@ int LAN2CAN_CANSendToMainController(void) {
         // Sensor & Door & Bar code
         gv.lanData.msgToClient[currentIndex] = 0x24;        currentIndex++;
         // Calculate data size
-        dataSize = 4 + 4 + 41 + BARCODE_SIZE;
+        dataSize = 4 + 4 + 41 + 4 + 1 + BARCODE_SIZE;
         gv.lanData.msgToClient[currentIndex] = (uint8_t) (dataSize);   currentIndex++;
         gv.lanData.msgToClient[currentIndex] = (uint8_t) (dataSize >> 8);  currentIndex++;
         // From slave   
@@ -756,6 +772,15 @@ int LAN2CAN_CANSendToMainController(void) {
         gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_right.Door.connection;                      currentIndex++;
         gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_right.Door.isProfileSet;                    currentIndex++;
         gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_right.Door.isTorqueOn;                      currentIndex++;
+        
+        //Ice valve
+        gv.lanData.msgToClient[currentIndex] = ICE_VALVE.motor.connection;                                      currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = ICE_VALVE.motor.isProfileSet;                                    currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = ICE_VALVE.motor.isTorqueOn;                                      currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = ICE_VALVE.lock_state;                                            currentIndex++;
+        
+        //waste water sensor (1 byte))
+        gv.lanData.msgToClient[currentIndex] = ICE_Wast_Water_Sensor;                                            currentIndex++;
         
          // Bar code Data (BARCODE_SIZE bytes)
         int idx = 0;
@@ -881,8 +906,8 @@ int LAN2CAN_CANClearBuffer(void) {
 void LAN2CAN_TaskFunction(void){    
     static int ice_cup_cnt = 0;
     static int drinkout_cnt = 0;
-    static int test1 = 0, test2 = 0, test3 = 0, test4 = 0,
-            test5 = 0, test6 = 0, test7 = 0,test8 = 0;
+    static int test0 = 0, test1 = 0, test2 = 0, test3 = 0, test4 = 0,
+            test5 = 0, test6 = 0, test7 = 0,test8 = 0, test9 = 0;
     
     PORTFunction();
     UART2Function();
@@ -902,11 +927,11 @@ void LAN2CAN_TaskFunction(void){
 
     if(BOARD_ID == 0){
         // Sensor & Door & Bar code
-        switch(drinkout_cnt%36){
+        switch(drinkout_cnt%50){
             case 0:
             {
                 if(DRINKOUT_INFO.module_left.Disk.command_state == MOTOR_IDLE){                   
-                     switch(test1%3){
+                     switch(test0%3){
                                 case 0:{
                                     DRINKOUT_INFO.module_left.Disk.command_state = MOTOR_WAIT_PING;
                                     DRINKOUT_CheckConnection(MODULE_LEFT_DISK);
@@ -927,7 +952,7 @@ void LAN2CAN_TaskFunction(void){
                                 default:
                                         break;
                             }
-                            test1++;
+                            test0++;
                 }
          
                 //consider as failed connection if still waiting for PING after 1 cycle
@@ -960,7 +985,7 @@ void LAN2CAN_TaskFunction(void){
             case 1:
             {
                 if(DRINKOUT_INFO.module_left.Door.command_state == MOTOR_IDLE){
-                            switch(test2%3){
+                            switch(test1%3){
                                 case 0:{
                                     DRINKOUT_CheckConnection(MODULE_LEFT_DOOR);
                                     DRINKOUT_INFO.module_left.Door.command_state = MOTOR_WAIT_PING;
@@ -984,7 +1009,7 @@ void LAN2CAN_TaskFunction(void){
                                 default:
                                         break;
                             }
-                            test2++;
+                            test1++;
                 }
                 else if( DRINKOUT_INFO.module_left.Door.command_state == MOTOR_WAIT_PING){
                     DRINKOUT_INFO.module_left.Door.connection = false;
@@ -1012,7 +1037,7 @@ void LAN2CAN_TaskFunction(void){
             case 2:
             {
 //                if(DRINKOUT_INFO.module_middle_left.Disk.command_state == MOTOR_IDLE){                   
-//                     switch(test3%3){
+//                     switch(test2%3){
 //                                case 0:{
 //                                    DRINKOUT_INFO.module_middle_left.Disk.command_state = MOTOR_WAIT_PING;
 //                                    DRINKOUT_CheckConnection(MODULE_LEFT_DISK);
@@ -1033,7 +1058,7 @@ void LAN2CAN_TaskFunction(void){
 //                                default:
 //                                        break;
 //                            }
-//                            test3++;
+//                            test2++;
 //                }
 //         
 //                //consider as failed connection if still waiting for PING after 1 cycle
@@ -1066,7 +1091,7 @@ void LAN2CAN_TaskFunction(void){
             case 3:
             {
 //                if(DRINKOUT_INFO.module_middle_left.Door.command_state == MOTOR_IDLE){
-//                            switch(test4%3){
+//                            switch(test3%3){
 //                                case 0:{
 //                                    DRINKOUT_CheckConnection(MODULE_LEFT_DOOR);
 //                                    DRINKOUT_INFO.module_middle_left.Door.command_state = MOTOR_WAIT_PING;
@@ -1090,7 +1115,7 @@ void LAN2CAN_TaskFunction(void){
 //                                default:
 //                                        break;
 //                            }
-//                            test4++;
+//                            test3++;
 //                }
 //                else if( DRINKOUT_INFO.module_middle_left.Door.command_state == MOTOR_WAIT_PING){
 //                    DRINKOUT_INFO.module_middle_left.Door.connection = false;
@@ -1118,7 +1143,7 @@ void LAN2CAN_TaskFunction(void){
             case 4:
             {
 //                if(DRINKOUT_INFO.module_middle_right.Disk.command_state == MOTOR_IDLE){                   
-//                     switch(test5%3){
+//                     switch(test4%3){
 //                                case 0:{
 //                                    DRINKOUT_INFO.module_middle_right.Disk.command_state = MOTOR_WAIT_PING;
 //                                    DRINKOUT_CheckConnection(MODULE_LEFT_DISK);
@@ -1139,7 +1164,7 @@ void LAN2CAN_TaskFunction(void){
 //                                default:
 //                                        break;
 //                            }
-//                            test5++;
+//                            test4++;
 //                }
 //         
 //                //consider as failed connection if still waiting for PING after 1 cycle
@@ -1172,7 +1197,7 @@ void LAN2CAN_TaskFunction(void){
             case 5:
 {
 //                if(DRINKOUT_INFO.module_middle_right.Door.command_state == MOTOR_IDLE){
-//                            switch(test6%3){
+//                            switch(test5%3){
 //                                case 0:{
 //                                    DRINKOUT_CheckConnection(MODULE_LEFT_DOOR);
 //                                    DRINKOUT_INFO.module_middle_right.Door.command_state = MOTOR_WAIT_PING;
@@ -1196,7 +1221,7 @@ void LAN2CAN_TaskFunction(void){
 //                                default:
 //                                        break;
 //                            }
-//                            test6++;
+//                            test5++;
 //                }
 //                else if( DRINKOUT_INFO.module_middle_right.Door.command_state == MOTOR_WAIT_PING){
 //                    DRINKOUT_INFO.module_middle_right.Door.connection = false;
@@ -1224,7 +1249,7 @@ void LAN2CAN_TaskFunction(void){
             case 6:
             {
 //                if(DRINKOUT_INFO.module_right.Disk.command_state == MOTOR_IDLE){                   
-//                     switch(test7%3){
+//                     switch(test6%3){
 //                                case 0:{
 //                                    DRINKOUT_INFO.module_right.Disk.command_state = MOTOR_WAIT_PING;
 //                                    DRINKOUT_CheckConnection(MODULE_LEFT_DISK);
@@ -1245,7 +1270,7 @@ void LAN2CAN_TaskFunction(void){
 //                                default:
 //                                        break;
 //                            }
-//                            test7++;
+//                            test6++;
 //                }
 //         
 //                //consider as failed connection if still waiting for PING after 1 cycle
@@ -1278,7 +1303,7 @@ void LAN2CAN_TaskFunction(void){
             case 7:
               {
 //                if(DRINKOUT_INFO.module_right.Door.command_state == MOTOR_IDLE){
-//                            switch(test8%3){
+//                            switch(test7%3){
 //                                case 0:{
 //                                    DRINKOUT_CheckConnection(MODULE_LEFT_DOOR);
 //                                    DRINKOUT_INFO.module_right.Door.command_state = MOTOR_WAIT_PING;
@@ -1302,7 +1327,7 @@ void LAN2CAN_TaskFunction(void){
 //                                default:
 //                                        break;
 //                            }
-//                            test8++;
+//                            test7++;
 //                }
 //                else if( DRINKOUT_INFO.module_right.Door.command_state == MOTOR_WAIT_PING){
 //                    DRINKOUT_INFO.module_right.Door.connection = false;
@@ -1340,6 +1365,44 @@ void LAN2CAN_TaskFunction(void){
                 //drink-out system ready when all of four modules ready
                 DRINKOUT_INFO.connection = (DRINKOUT_INFO.module_left.ready && DRINKOUT_INFO.module_middle_left.ready &&
                                             DRINKOUT_INFO.module_middle_right.ready && DRINKOUT_INFO.module_right.ready);
+            }
+                break;
+            case 9:{
+                if(ICE_VALVE.motor.command_state == MOTOR_IDLE){
+                    switch(test9%3){
+                        case 0:
+                            ICE_Valve_Check_Connection();
+                            ICE_VALVE.motor.command_state = MOTOR_WAIT_PING;
+                            Nop();
+                        
+                            break;
+                        case 1:
+                            if((ICE_VALVE.motor.connection == true) && ICE_VALVE.motor.isProfileSet == false){
+//                                ICE_Valve_Set_Profile();
+//                                ICE_VALVE.command_state = MOTOR_WAIT_SET_PROFILE;
+                            }
+                        
+                            break;
+                        case 2:
+                            ICE_Valve_Set_Torque();
+                            ICE_VALVE.motor.command_state = MOTOR_WAIT_ENABLE_TORQUE;
+                        
+                            break;
+                    }
+                    test9++;
+                }
+                else if(ICE_VALVE.motor.command_state == MOTOR_WAIT_PING){
+                    ICE_VALVE.motor.connection = false;
+                    ICE_VALVE.motor.command_state = MOTOR_IDLE;
+                }
+                else if(ICE_VALVE.motor.command_state == MOTOR_WAIT_SET_PROFILE){
+                    ICE_VALVE.motor.isProfileSet = false;
+                    ICE_VALVE.motor.command_state = MOTOR_IDLE;
+                }
+                else if(ICE_VALVE.motor.command_state == MOTOR_WAIT_ENABLE_TORQUE){
+                    ICE_VALVE.motor.isTorqueOn = false;
+                    ICE_VALVE.motor.command_state = MOTOR_IDLE;
+                }
             }
                 break;
             default:
@@ -1395,17 +1458,19 @@ void LAN2CAN_TaskFunction(void){
 
 void PORTFunction(){
     if(BOARD_ID == 0){
-        // Sensor & Door & Barcode
+         //Sensor & Door & Barcode
 //        DIO_0[0] = PORTBbits.RB2;
 //        DIO_0[1] = PORTBbits.RB3;
 //        DIO_0[2] = PORTBbits.RB4;
 //        DIO_0[3] = PORTBbits.RB5;
+        ICE_Wast_Water_Sensor = PORTBbits.RB4;
+        
     }else if(BOARD_ID == 1){
-        // Ice & Cup
-//        DIO_1[0] = PORTBbits.RB3;
-//        DIO_1[1] = PORTBbits.RB5;
-//        DIO_1[2] = PORTBbits.RB2;
-//        DIO_1[3] = PORTBbits.RB4;
+        // Ice & Cup & tea
+        DIO_1[0] = PORTBbits.RB2;
+        DIO_1[1] = PORTBbits.RB3;
+        DIO_1[2] = PORTBbits.RB4;
+        DIO_1[3] = PORTBbits.RB5;
     }
 }
 
@@ -1976,6 +2041,30 @@ void UART4Function(){
 //                                    break;
 //                            }
 //                            break;
+                        case 9:{
+                            if(ICE_VALVE.motor.command_state == MOTOR_WAIT_PING){
+                                ICE_VALVE.motor.connection = true;
+                                ICE_VALVE.motor.command_state = MOTOR_IDLE;
+                            }
+                            else if(ICE_VALVE.motor.command_state == MOTOR_WAIT_SET_PROFILE){
+                                ICE_VALVE.motor.isProfileSet = true;
+                                ICE_VALVE.motor.command_state = MOTOR_IDLE;
+                            }
+                            else if(ICE_VALVE.motor.command_state == MOTOR_WAIT_ENABLE_TORQUE){
+                                ICE_VALVE.motor.isTorqueOn = true;
+                                ICE_VALVE.motor.command_state = MOTOR_IDLE;
+                            }
+                            else if(ICE_VALVE.motor.command_state == MOTOR_WAIT_DOOR_OPEN){
+                                ICE_VALVE.lock_state = false;
+                                ICE_VALVE.motor.command_state = MOTOR_IDLE;
+                            }
+                            else if(ICE_VALVE.motor.command_state == MOTOR_WAIT_DOOR_CLOSE){
+                                ICE_VALVE.lock_state = true;
+                                ICE_VALVE.motor.command_state = MOTOR_IDLE;
+                            }
+                            
+                        }
+                            break;
                         default:
                             break;
                     }

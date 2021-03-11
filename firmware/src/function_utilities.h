@@ -32,4 +32,10 @@ void DRINKOUT_TurnTorque(unsigned char ID, unsigned char ON_OFF);
 
 long DRINK_GetWeight();
 
+
+void ICE_Valve_Set_Lock(unsigned char lock);
+void ICE_Valve_Check_Connection();
+void ICE_Valve_Set_Profile();
+void ICE_Valve_Set_Torque();
+
 #endif

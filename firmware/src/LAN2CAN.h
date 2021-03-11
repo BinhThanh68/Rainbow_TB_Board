@@ -125,6 +125,12 @@ typedef enum
     MOTOR_POSITION_DOOR_CLOSE       
 } DRINKOUT_MOTOR_POSITION;
 
+typedef struct
+{
+    MOTOR_STATE motor;
+    unsigned char lock_state;
+} ICE_VALVE_DATA;
+
 // Client socket definition
 typedef struct
 {
