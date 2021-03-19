@@ -45,7 +45,10 @@ void INIT_PINS(void){
         TRISBbits.TRISB5 = 0;   // Digital out
         //ice waste water sensor
         TRISBbits.TRISB4 = 1;   // Digital in 
-        CNPDBbits.CNPDB4 = 1;
+//        //pull down only for ice water sensor
+//        CNPDBbits.CNPDB4 = 1;
+        //pull up
+        CNPUBbits.CNPUB4 = 1;
     }else if(BOARD_ID==1){
         TRISBbits.TRISB2 = 1;   // Digital In 0
         TRISBbits.TRISB3 = 1;   // Digital In 1

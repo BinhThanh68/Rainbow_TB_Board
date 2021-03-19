@@ -256,32 +256,32 @@ void DRINKOUT_Go(unsigned char ID, short goal_pos){
     if(ID == MODULE_LEFT_DISK){
         switch(goal_pos){
         case MOTOR_POSITION_OUTLET1:{
-            //go 874
-            send_data[10] = 0x6A; //data1
+            //go 825
+            send_data[10] = 0x39; //data1
             send_data[11] = 0x03; //data2
             send_data[12] = 0x00; //data3
             send_data[13] = 0x00; //data4
-            send_data[14] = 0xCC; //CRC1
-            send_data[15] = 0x81; //CRC2
+            send_data[14] = 0xD7; //CRC1
+            send_data[15] = 0x7D; //CRC2
         }
             break;
         case MOTOR_POSITION_OUTLET2:{
             //go 2187
-            send_data[10] = 0xC5; //data1
+            send_data[10] = 0x9D; //data1
             send_data[11] = 0x08; //data2
             send_data[12] = 0x00; //data3
             send_data[13] = 0x00; //data4
-            send_data[14] = 0x60; //CRC1
-            send_data[15] = 0xCD; //CRC2
+            send_data[14] = 0x78; //CRC1
+            send_data[15] = 0x2D; //CRC2
         }
             break;
         case MOTOR_POSITION_OUTLET3:{
             //go 3552
-            send_data[10] = 0x2E; //data1
-            send_data[11] = 0x0E; //data2
+            send_data[10] = 0xEE; //data1
+            send_data[11] = 0x0D; //data2
             send_data[12] = 0x00; //data3
             send_data[13] = 0x00; //data4
-            send_data[14] = 0x35; //CRC1
+            send_data[14] = 0x2B; //CRC1
             send_data[15] = 0x51; //CRC2
         }
             break;
@@ -292,27 +292,27 @@ void DRINKOUT_Go(unsigned char ID, short goal_pos){
     else if(ID == MODULE_LEFT_DOOR){
         if(goal_pos == MOTOR_POSITION_DOOR_OPEN){
             //go open
-            //test 1000
-            send_data[10] = 0xE8; //data1
-            send_data[11] = 0x03; //data2
+            //test 2930
+            send_data[10] = 0x72; //data1
+            send_data[11] = 0x0B; //data2
             send_data[12] = 0x00; //data3
             send_data[13] = 0x00; //data4
-            send_data[14] = 0xCC; //CRC1
-            send_data[15] = 0x09; //CRC2
+            send_data[14] = 0x56; //CRC1
+            send_data[15] = 0xC1; //CRC2
         }
         else if(goal_pos == MOTOR_POSITION_DOOR_CLOSE){
             //go close
             //test 4000
-            send_data[10] = 0xA0; //data1
-            send_data[11] = 0x0F; //data2
+            send_data[10] = 0xEA; //data1
+            send_data[11] = 0x29; //data2
             send_data[12] = 0x00; //data3
             send_data[13] = 0x00; //data4
-            send_data[14] = 0x22; //CRC1
-            send_data[15] = 0xA9; //CRC2
+            send_data[14] = 0xC4; //CRC1
+            send_data[15] = 0x23; //CRC2
         }
     }
-    WriteUART4(send_data, 16);
-//    WriteUART2(send_data, 16);
+//    WriteUART4(send_data, 16);
+    WriteUART3(send_data, 16);
 }
 
 void DRINKOUT_TurnTorque(unsigned char ID, unsigned char ON_OFF){
@@ -352,8 +352,8 @@ void DRINKOUT_TurnTorque(unsigned char ID, unsigned char ON_OFF){
         }
     }
   
-    WriteUART4(send_data, 13);
-//    WriteUART2(send_data, 13);
+//    WriteUART4(send_data, 13);
+    WriteUART3(send_data, 13);
 }
 
 void DRINKOUT_CheckConnection(unsigned char ID){
@@ -375,8 +375,8 @@ void DRINKOUT_CheckConnection(unsigned char ID){
         send_data[9] = 0x72; //CRC2    
     }
     
-    WriteUART4(send_data, 10);
-//    WriteUART2(send_data, 10);
+//    WriteUART4(send_data, 10);
+    WriteUART3(send_data, 10);
 }
 
 void DRINKOUT_SetProfile(unsigned char ID){
@@ -433,8 +433,8 @@ void DRINKOUT_SetProfile(unsigned char ID){
         send_data[15] = 0x79; //CRC2
     }
       
-    WriteUART4(send_data, 16);
-//    WriteUART2(send_data, 16);
+//    WriteUART4(send_data, 16);
+    WriteUART3(send_data, 16);
 }
 
 
@@ -487,8 +487,8 @@ void DRINKOUT_ReadTorqueStatus(unsigned char ID){
         send_data[13] = 0x4B; //CRC2
     }
 
-//    WriteUART4(send_data, 14);
-    WriteUART2(send_data, 14);
+    WriteUART4(send_data, 14);
+//    WriteUART2(send_data, 14);
 }
 
 long DRINK_GetWeight(){

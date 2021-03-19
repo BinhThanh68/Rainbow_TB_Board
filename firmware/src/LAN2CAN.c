@@ -9,6 +9,11 @@
 #include <proc/p32mz2048efh064.h>
 #include "HX711.h"
 
+#define LOADCELL_CALIB_FACTOR_AT_POS_1 741
+#define LOADCELL_CALIB_FACTOR_AT_POS_2 877
+#define LOADCELL_CALIB_FACTOR_AT_POS_3 1000
+#define LOADCELL_CALIB_FACTOR_AT_POS_4 1116
+
 float LOADCELL_DATA;
 bool LOADCELL_ENABLE = false;
 unsigned char LOADCELL_SAMPLE_NUM = 2;
@@ -24,8 +29,9 @@ unsigned char BARCODE_DATA[BARCODE_SIZE] = {0,};
 int BARCODE_LOCK = 0;
 
 //averaged number of pulses in delay time
-#define DELAY_LOADCELL_TIME_IN_TIMER 35536644.65
-float LOADCELL_THRESHOLD = 140;
+//#define DELAY_LOADCELL_TIME_IN_TIMER 35536644.65
+#define DELAY_LOADCELL_TIME_IN_TIMER 30650000
+float LOADCELL_THRESHOLD = 160;
 
 unsigned char DIO_0[4] = {0,};
 unsigned char DIO_1[4]= {0,};
@@ -74,7 +80,7 @@ void LAN2CAN_Initialize(void) {
         // Sensor & Door
         //load cell
        HX711_begin(128);
-       HX711_set_scale(2190);
+       HX711_set_scale(LOADCELL_CALIB_FACTOR_AT_POS_1);
        HX711_tare(3);
        LOADCELL_ENABLE=0;
     }else if(BOARD_ID == 1){
@@ -168,11 +174,12 @@ void LAN2CAN_Tasks(void) {
             
             //old algorithm
         if(LOADCELL_ENABLE){
-        if(test%3800==0){
+        if(test%3500==0){
         LOADCELL_DATA = HX711_get_units(1);
+//        printf("%f ",LOADCELL_DATA);
         }
         test++;
-//        printf("%f\n", LOADCELL_DATA);     
+
   
         if((LOADCELL_DATA >= ((LOADCELL_THRESHOLD*30)/100)) && val1 == 0){            
              time1 = ((int)(TMR3) << 16) | TMR2;
@@ -469,6 +476,21 @@ int LAN2CAN_LANDataParsing(void) {
                             break;
                         case 2:
                             LOADCELL_THRESHOLD = para1;
+                            break;
+                        case 3:{
+                            if(para1==1){
+                                HX711_set_scale(LOADCELL_CALIB_FACTOR_AT_POS_1);
+                            }else if(para1==2){
+                                HX711_set_scale(LOADCELL_CALIB_FACTOR_AT_POS_2);
+                            }
+                            else if(para1==3){
+                                HX711_set_scale(LOADCELL_CALIB_FACTOR_AT_POS_3);
+                            }
+                            else if(para1==4){
+                                HX711_set_scale(LOADCELL_CALIB_FACTOR_AT_POS_4);
+                            }
+                            break;
+                        }
                         default:
                             break;
                     }
@@ -1463,14 +1485,18 @@ void PORTFunction(){
 //        DIO_0[1] = PORTBbits.RB3;
 //        DIO_0[2] = PORTBbits.RB4;
 //        DIO_0[3] = PORTBbits.RB5;
-        ICE_Wast_Water_Sensor = PORTBbits.RB4;
+//        ICE_Wast_Water_Sensor = PORTBbits.RB4;
+        DRINKOUT_INFO.module_left.cupPresent = PORTBbits.RB4;
+        Nop();
         
     }else if(BOARD_ID == 1){
         // Ice & Cup & tea
-        DIO_1[0] = PORTBbits.RB2;
-        DIO_1[1] = PORTBbits.RB3;
-        DIO_1[2] = PORTBbits.RB4;
-        DIO_1[3] = PORTBbits.RB5;
+//        DIO_1[0] = PORTBbits.RB2;
+//        DIO_1[1] = PORTBbits.RB3;
+//        DIO_1[2] = PORTBbits.RB4;
+//        DIO_1[3] = PORTBbits.RB5;
+        
+        
     }
 }
 
@@ -1591,108 +1617,27 @@ void UART3Function(){
     static int ice_index = 0;
     
     
-    static unsigned char barcode_buf[BARCODE_SIZE] = {0,};
-    static int barcode_state = 0;
-    static int barcode_index = 0;
-    
-    if(U3STAbits.URXDA == TRUE){
-        unsigned char temp_ch = U3RXREG;
-        if(BOARD_ID == 0){
-            // Sensor & Door
-        }else if(BOARD_ID == 1){
-            // Ice & Cup
-            // Ice ==============================================================
-            switch(ice_state){
-                case 0:
-                    if(temp_ch == 0x02){
-                        // match STX
-                        ice_state = 1;
-                        
-                        ice_buf[0] = 0x02;
-                        ice_index = 1;
-                    }
-                    break;
-                case 1:
-                    ice_buf[ice_index] = temp_ch;
-                    ice_index++;
-                    if(ice_index >= 7){
-                        ice_state = 2;
-                    }
-                    break;
-                case 2:
-                    if((ice_buf[1] == 0x00) && (ice_buf[6] == 0x03)){
-                        // match direction && match ETX
-                        if(ice_buf[1]^ice_buf[2]^ice_buf[3]^ice_buf[4] == ice_buf[5]){
-                            // match checksum
-                            switch(ice_buf[2]){
-                                case 0xA0:
-                                    ICE_INFO.comm_mode = ice_buf[3];
-                                    ICE_INFO.cup_ignore = ice_buf[4];
-                                    break;
-                                case 0xB0:
-                                    ICE_INFO.last_ice_out_time = ice_buf[3];
-                                    ICE_INFO.last_water_out_time = ice_buf[4];
-                                    break;
-                                case 0xC0:
-                                    // dummy
-                                    break;
-                                case 0xC1:
-                                    ICE_INFO.setting_ambient_temperature_low = ice_buf[3];
-                                    ICE_INFO.setting_ambient_temperature_high = ice_buf[4];
-                                    break;
-                                case 0xC2:
-                                    ICE_INFO.ambient_temperature = ice_buf[3];
-                                    break;
-                                case 0xC3:
-                                    ICE_INFO.evaporator_temperature = ice_buf[3];
-                                    ICE_INFO.condensor_temperature = ice_buf[4];
-                                    break;
-                                case 0xD0:
-                                    ICE_INFO.timeout_sec = ice_buf[3]*60 + ice_buf[4];
-                                    break;
-                                case 0xE0:
-                                    // dummy
-                                    break;
-                                case 0xE1:
-                                    // dummy
-                                    break;
-                                case 0xCF:
-                                    ICE_INFO.status.B[0] = ice_buf[3];
-                                    ICE_INFO.status.B[1] = ice_buf[4];
-                                    break;
-                            }
-                            
-                            ice_connection_count = 0;
-                            ice_state = 0;
-                        }else{
-                            ice_state = 0;
-                        }
-                    }else{
-                        ice_state = 0;
-                    }
-                    break;
-            }
-        }
-    }
-}
-
-void UART4Function(){
-    
+        
     static unsigned char DrinkOut_state = 0;
     static unsigned char DrinkOut_index;
     static short DrinkOut_data_length = 0;
     static int DrinkOut_buf[30] = {0,};
-    int i =0;
+
     
-    
-//    if(U4STAbits.URXDA == TRUE){
-//        DrinkOut_buf[i] = U4RXREG;
-//        i++;
+    //    int i=0;
+//    while(U3STAbits.URXDA == TRUE){
+//        if(BOARD_ID == 0){
+//            DrinkOut_buf[i] = U3RXREG;
+//        }
 //    }
-//    
-    if(U4STAbits.URXDA == TRUE){
-        unsigned char temp_ch = U4RXREG;
-        if(BOARD_ID == 0){                
+    
+    if(U3STAbits.URXDA == TRUE){
+        unsigned char temp_ch = U3RXREG;
+        
+        if(BOARD_ID == 0){
+            // Sensor & Door
+            printf("%c ", temp_ch);
+            
             switch(DrinkOut_state){
                 case 0:
                     if(temp_ch == 0xFF){
@@ -1702,7 +1647,7 @@ void UART4Function(){
                     }
                     break;
                 case 1:
-                    if(temp_ch == 0xFF){
+                    if(temp_ch == 0xFF | (temp_ch == 0xFD)){
                         // match header  2
                         DrinkOut_state = 2;
                         Nop();
@@ -1712,7 +1657,7 @@ void UART4Function(){
                     }
                     break;
                 case 2:
-                    if(temp_ch == 0xFD){
+                    if(temp_ch == 0xFD | (temp_ch == 0x00)){
                         // match header 3
                         DrinkOut_state = 3;
                         Nop();
@@ -2075,6 +2020,103 @@ void UART4Function(){
                 default:
                     break;            
             }
+             
+        }else if(BOARD_ID == 1){
+            // Ice & Cup
+            // Ice ==============================================================
+            switch(ice_state){
+                case 0:
+                    if(temp_ch == 0x02){
+                        // match STX
+                        ice_state = 1;
+                        
+                        ice_buf[0] = 0x02;
+                        ice_index = 1;
+                    }
+                    break;
+                case 1:
+                    ice_buf[ice_index] = temp_ch;
+                    ice_index++;
+                    if(ice_index >= 7){
+                        ice_state = 2;
+                    }
+                    break;
+                case 2:
+                    if((ice_buf[1] == 0x00) && (ice_buf[6] == 0x03)){
+                        // match direction && match ETX
+                        if(ice_buf[1]^ice_buf[2]^ice_buf[3]^ice_buf[4] == ice_buf[5]){
+                            // match checksum
+                            switch(ice_buf[2]){
+                                case 0xA0:
+                                    ICE_INFO.comm_mode = ice_buf[3];
+                                    ICE_INFO.cup_ignore = ice_buf[4];
+                                    break;
+                                case 0xB0:
+                                    ICE_INFO.last_ice_out_time = ice_buf[3];
+                                    ICE_INFO.last_water_out_time = ice_buf[4];
+                                    break;
+                                case 0xC0:
+                                    // dummy
+                                    break;
+                                case 0xC1:
+                                    ICE_INFO.setting_ambient_temperature_low = ice_buf[3];
+                                    ICE_INFO.setting_ambient_temperature_high = ice_buf[4];
+                                    break;
+                                case 0xC2:
+                                    ICE_INFO.ambient_temperature = ice_buf[3];
+                                    break;
+                                case 0xC3:
+                                    ICE_INFO.evaporator_temperature = ice_buf[3];
+                                    ICE_INFO.condensor_temperature = ice_buf[4];
+                                    break;
+                                case 0xD0:
+                                    ICE_INFO.timeout_sec = ice_buf[3]*60 + ice_buf[4];
+                                    break;
+                                case 0xE0:
+                                    // dummy
+                                    break;
+                                case 0xE1:
+                                    // dummy
+                                    break;
+                                case 0xCF:
+                                    ICE_INFO.status.B[0] = ice_buf[3];
+                                    ICE_INFO.status.B[1] = ice_buf[4];
+                                    break;
+                            }
+                            
+                            ice_connection_count = 0;
+                            ice_state = 0;
+                        }else{
+                            ice_state = 0;
+                        }
+                    }else{
+                        ice_state = 0;
+                    }
+                    break;
+            }
+        }
+    }
+}
+
+void UART4Function(){
+    
+    static unsigned char DrinkOut_state = 0;
+    static unsigned char DrinkOut_index;
+    static short DrinkOut_data_length = 0;
+    static int DrinkOut_buf[30] = {0,};
+    int i =0;
+    
+    
+//    if(U4STAbits.URXDA == TRUE){
+//        DrinkOut_buf[i] = U4RXREG;
+//        i++;
+//    }
+//    
+    if(U4STAbits.URXDA == TRUE){
+        unsigned char temp_ch = U4RXREG;
+        if(BOARD_ID == 0){       
+            
+           
         }
     }
 }
