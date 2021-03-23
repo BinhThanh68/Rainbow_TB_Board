@@ -79,10 +79,10 @@ void LAN2CAN_Initialize(void) {
     if(BOARD_ID == 0){
         // Sensor & Door
         //load cell
-       HX711_begin(128);
-       HX711_set_scale(LOADCELL_CALIB_FACTOR_AT_POS_1);
-       HX711_tare(3);
-       LOADCELL_ENABLE=0;
+//       HX711_begin(128);
+//       HX711_set_scale(LOADCELL_CALIB_FACTOR_AT_POS_1);
+//       HX711_tare(3);
+//       LOADCELL_ENABLE=0;
     }else if(BOARD_ID == 1){
         // Ice & Cup
         
@@ -1009,22 +1009,22 @@ void LAN2CAN_TaskFunction(void){
                 if(DRINKOUT_INFO.module_left.Door.command_state == MOTOR_IDLE){
                             switch(test1%3){
                                 case 0:{
-                                    DRINKOUT_CheckConnection(MODULE_LEFT_DOOR);
-                                    DRINKOUT_INFO.module_left.Door.command_state = MOTOR_WAIT_PING;
+//                                    DRINKOUT_CheckConnection(MODULE_LEFT_DOOR);
+//                                    DRINKOUT_INFO.module_left.Door.command_state = MOTOR_WAIT_PING;
                                     break;
                                 }
                                 case 1:
                                 {
-                                    if((DRINKOUT_INFO.module_left.Door.connection == true)&&(DRINKOUT_INFO.module_left.Door.isProfileSet == false)){
-                                    DRINKOUT_INFO.module_left.Door.command_state = MOTOR_WAIT_SET_PROFILE;
-                                    DRINKOUT_SetProfile(MODULE_LEFT_DOOR);
-                                    }
+//                                    if((DRINKOUT_INFO.module_left.Door.connection == true)&&(DRINKOUT_INFO.module_left.Door.isProfileSet == false)){
+//                                    DRINKOUT_INFO.module_left.Door.command_state = MOTOR_WAIT_SET_PROFILE;
+//                                    DRINKOUT_SetProfile(MODULE_LEFT_DOOR);
+//                                    }
                                 }
                                     break;
                                 case 2:
                                 {
-                                    DRINKOUT_INFO.module_left.Door.command_state = MOTOR_WAIT_ENABLE_TORQUE;
-                                    DRINKOUT_TurnTorque(MODULE_LEFT_DOOR, 1);
+//                                    DRINKOUT_INFO.module_left.Door.command_state = MOTOR_WAIT_ENABLE_TORQUE;
+//                                    DRINKOUT_TurnTorque(MODULE_LEFT_DOOR, 1);
 
                                 }
                                     break;
@@ -1491,10 +1491,10 @@ void PORTFunction(){
         
     }else if(BOARD_ID == 1){
         // Ice & Cup & tea
-//        DIO_1[0] = PORTBbits.RB2;
-//        DIO_1[1] = PORTBbits.RB3;
-//        DIO_1[2] = PORTBbits.RB4;
-//        DIO_1[3] = PORTBbits.RB5;
+        DIO_1[0] = PORTBbits.RB2;
+        DIO_1[1] = PORTBbits.RB3;
+        DIO_1[2] = PORTBbits.RB4;
+        DIO_1[3] = PORTBbits.RB5;
         
         
     }
@@ -1624,10 +1624,9 @@ void UART3Function(){
     static int DrinkOut_buf[30] = {0,};
 
     
-    //    int i=0;
 //    while(U3STAbits.URXDA == TRUE){
 //        if(BOARD_ID == 0){
-//            DrinkOut_buf[i] = U3RXREG;
+//            printf("%c", U3RXREG);
 //        }
 //    }
     
@@ -1636,21 +1635,19 @@ void UART3Function(){
         
         if(BOARD_ID == 0){
             // Sensor & Door
-            printf("%c ", temp_ch);
+            printf("%c", temp_ch);
             
             switch(DrinkOut_state){
                 case 0:
                     if(temp_ch == 0xFF){
                         // match header 1
                         DrinkOut_state = 1;
-                        Nop();
                     }
                     break;
                 case 1:
                     if(temp_ch == 0xFF | (temp_ch == 0xFD)){
                         // match header  2
                         DrinkOut_state = 2;
-                        Nop();
                      }
                     else{
                         DrinkOut_state = 0;
@@ -1660,7 +1657,6 @@ void UART3Function(){
                     if(temp_ch == 0xFD | (temp_ch == 0x00)){
                         // match header 3
                         DrinkOut_state = 3;
-                        Nop();
                     }
                     else{
                         DrinkOut_state = 0;
@@ -1671,7 +1667,6 @@ void UART3Function(){
                         // match header 4
                         DrinkOut_state = 4;
                         DrinkOut_index = 0;
-                        Nop();
                     }
                     else{
                         DrinkOut_state = 0;
@@ -2116,7 +2111,7 @@ void UART4Function(){
         unsigned char temp_ch = U4RXREG;
         if(BOARD_ID == 0){       
             
-           
+            printf("%c", temp_ch);
         }
     }
 }
