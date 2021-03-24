@@ -69,6 +69,9 @@ typedef enum
     MOTOR_IDLE = 0,
     MOTOR_WAIT_PING,
     MOTOR_WAIT_SET_PROFILE,
+    MOTOR_WAIT_SET_PROFILE_ACELE,        
+    MOTOR_WAIT_SET_PD_GAIN,
+    MOTOR_WAIT_SET_PP_GAIN,        
     MOTOR_WAIT_ENABLE_TORQUE,        
     MOTOR_WAIT_GO_POS1,
     MOTOR_WAIT_GO_POS2,
@@ -81,6 +84,9 @@ typedef struct
 {
     unsigned char connection;
     unsigned char isProfileSet;
+    unsigned char isProfileAceleSet;
+    unsigned char isPDGainSet;
+    unsigned char isPPGainSet;
     unsigned char isTorqueOn;
     MOTOR_COMMAND_STATE command_state;
 } MOTOR_STATE;

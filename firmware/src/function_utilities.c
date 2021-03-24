@@ -392,17 +392,25 @@ void DRINKOUT_SetProfile(unsigned char ID){
     send_data[7] = 0x03; //instruction    
     send_data[8] = 0x70; //address1
     send_data[9] = 0x00; //address1
-    send_data[10] = 0x28; //data1  default:40
-    send_data[11] = 0x00; //data2
-    send_data[12] = 0x00; //data3
-    send_data[13] = 0x00; //data4
+//    send_data[10] = 0x28; //data1  default:40
+//    send_data[11] = 0x00; //data2
+//    send_data[12] = 0x00; //data3
+//    send_data[13] = 0x00; //data4
     if(ID == MODULE_LEFT_DISK){
+        send_data[10] = 0x28; //data1  default:40
+        send_data[11] = 0x00; //data2
+        send_data[12] = 0x00; //data3
+        send_data[13] = 0x00; //data4
         send_data[14] = 0xE8; //CRC1
         send_data[15] = 0x49; //CRC2
     }
     else if(ID == MODULE_LEFT_DOOR){
-        send_data[14] = 0xD4; //CRC1
-        send_data[15] = 0xE9; //CRC2
+        send_data[10] = 0x96; //data1  default:40
+        send_data[11] = 0x00; //data2
+        send_data[12] = 0x00; //data3
+        send_data[13] = 0x00; //data4
+        send_data[14] = 0xE2; //CRC1
+        send_data[15] = 0xF1; //CRC2
     }
     else if(ID == MODULE_MIDDLE_LEFT_DISK){
         send_data[14] = 0xC3; //CRC1
@@ -437,6 +445,115 @@ void DRINKOUT_SetProfile(unsigned char ID){
     WriteUART3(send_data, 16);
 }
 
+
+void DRINKOUT_SetProfile_Acele(unsigned char ID){
+    unsigned char send_data[16];
+  
+    send_data[0] = 0xFF; //header1
+    send_data[1] = 0xFF; //header2
+    send_data[2] = 0xFD; //header3
+    send_data[3] = 0x00; //reserved
+    send_data[4] = ID;   //ID
+    send_data[5] = 0x09; //length1
+    send_data[6] = 0x00; //length2
+    send_data[7] = 0x03; //instruction    
+    send_data[8] = 0x6C; //address1
+    send_data[9] = 0x00; //address1
+    send_data[10] = 0x0A; //data1  default:10
+    send_data[11] = 0x00; //data2
+    send_data[12] = 0x00; //data3
+    send_data[13] = 0x00; //data4
+    if(ID == MODULE_LEFT_DISK){
+        send_data[14] = 0xFA; //CRC1
+        send_data[15] = 0x41; //CRC2
+    }
+    else if(ID == MODULE_MIDDLE_LEFT_DISK){
+//        send_data[14] = 0xC3; //CRC1
+//        send_data[15] = 0x09; //CRC2
+    }
+    else if(ID == MODULE_MIDDLE_RIGHT_DISK){
+//        send_data[14] = 0xBE; //CRC1
+//        send_data[15] = 0xC9; //CRC2
+    }
+    else if(ID == MODULE_RIGHT_DISK){
+//        send_data[14] = 0x95; //CRC1
+//        send_data[15] = 0x89; //CRC2
+    }
+   
+//    WriteUART4(send_data, 16);
+    WriteUART3(send_data, 16);
+}
+
+void DRINKOUT_SetPPGain(unsigned char ID){
+    unsigned char send_data[16];
+  
+    send_data[0] = 0xFF; //header1
+    send_data[1] = 0xFF; //header2
+    send_data[2] = 0xFD; //header3
+    send_data[3] = 0x00; //reserved
+    send_data[4] = ID;   //ID
+    send_data[5] = 0x07; //length1
+    send_data[6] = 0x00; //length2
+    send_data[7] = 0x03; //instruction    
+    send_data[8] = 0x54; //address1
+    send_data[9] = 0x00; //address1
+    send_data[10] = 0xB8; //data1  default:4500
+    send_data[11] = 0x0B; //data2
+    if(ID == MODULE_LEFT_DISK){
+        send_data[12] = 0x72; //CRC1
+        send_data[13] = 0x5D; //CRC2
+    } 
+    else if(ID == MODULE_MIDDLE_LEFT_DISK){
+//        send_data[12] = 0xC3; //CRC1
+//        send_data[13] = 0x09; //CRC2
+    }
+    else if(ID == MODULE_MIDDLE_RIGHT_DISK){
+//        send_data[12] = 0xBE; //CRC1
+//        send_data[13] = 0xC9; //CRC2
+    }
+    else if(ID == MODULE_RIGHT_DISK){
+//        send_data[12] = 0x95; //CRC1
+//        send_data[13] = 0x89; //CRC2
+    }
+//    WriteUART4(send_data, 16);
+    WriteUART3(send_data, 16);
+}
+
+
+void DRINKOUT_SetPDGain(unsigned char ID){
+    unsigned char send_data[16];
+    
+    send_data[0] = 0xFF; //header1
+    send_data[1] = 0xFF; //header2
+    send_data[2] = 0xFD; //header3
+    send_data[3] = 0x00; //reserved
+    send_data[4] = ID;   //ID
+    send_data[5] = 0x07; //length1
+    send_data[6] = 0x00; //length2
+    send_data[7] = 0x03; //instruction    
+    send_data[8] = 0x50; //address1
+    send_data[9] = 0x00; //address1
+    send_data[10] = 0x94; //data1  default:4500
+    send_data[11] = 0x11; //data2
+    if(ID == MODULE_LEFT_DISK){
+        send_data[12] = 0x2D; //CRC1
+        send_data[13] = 0x65; //CRC2
+    }   
+    else if(ID == MODULE_MIDDLE_LEFT_DISK){
+//        send_data[12] = 0xC3; //CRC1
+//        send_data[13] = 0x09; //CRC2
+    }
+    else if(ID == MODULE_MIDDLE_RIGHT_DISK){
+//        send_data[12] = 0xBE; //CRC1
+//        send_data[13] = 0xC9; //CRC2
+    }
+    else if(ID == MODULE_RIGHT_DISK){
+//        send_data[12] = 0x95; //CRC1
+//        send_data[13] = 0x89; //CRC2
+    } 
+//    WriteUART4(send_data, 16);
+    WriteUART3(send_data, 16);
+}
 
 void DRINKOUT_ReadTorqueStatus(unsigned char ID){
     unsigned char send_data[14];
@@ -487,8 +604,8 @@ void DRINKOUT_ReadTorqueStatus(unsigned char ID){
         send_data[13] = 0x4B; //CRC2
     }
 
-    WriteUART4(send_data, 14);
-//    WriteUART2(send_data, 14);
+//    WriteUART4(send_data, 14);
+    WriteUART3(send_data, 14);
 }
 
 long DRINK_GetWeight(){

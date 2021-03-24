@@ -25,6 +25,9 @@ void CUP_RequestSoldOut();
 
 
 void DRINKOUT_SetProfile(unsigned char ID);
+void DRINKOUT_SetProfile_Acele(unsigned char ID);
+void DRINKOUT_SetPPGain(unsigned char ID);
+void DRINKOUT_SetPDGain(unsigned char ID);
 void DRINKOUT_CheckConnection(unsigned char ID);
 //goal_position 1~3
 void DRINKOUT_Go(unsigned char ID, short goal_pos);
