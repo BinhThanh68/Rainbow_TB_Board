@@ -515,8 +515,8 @@ void DRINKOUT_SetPPGain(unsigned char ID){
 //        send_data[12] = 0x95; //CRC1
 //        send_data[13] = 0x89; //CRC2
     }
-//    WriteUART4(send_data, 16);
-    WriteUART3(send_data, 16);
+//    WriteUART4(send_data, 14);
+    WriteUART3(send_data, 14);
 }
 
 
@@ -551,8 +551,8 @@ void DRINKOUT_SetPDGain(unsigned char ID){
 //        send_data[12] = 0x95; //CRC1
 //        send_data[13] = 0x89; //CRC2
     } 
-//    WriteUART4(send_data, 16);
-    WriteUART3(send_data, 16);
+//    WriteUART4(send_data, 14);
+    WriteUART3(send_data, 14);
 }
 
 void DRINKOUT_ReadTorqueStatus(unsigned char ID){

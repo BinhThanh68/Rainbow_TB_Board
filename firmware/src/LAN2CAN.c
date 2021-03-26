@@ -14,23 +14,27 @@
 #define LOADCELL_CALIB_FACTOR_AT_POS_3 1000
 #define LOADCELL_CALIB_FACTOR_AT_POS_4 1116
 
-float LOADCELL_DATA;
-bool LOADCELL_ENABLE = false;
-unsigned char LOADCELL_SAMPLE_NUM = 2;
+ST_LOADCELL_DATA LOADCELL_INFO;
+
+unsigned char start_making=0;
+//float LOADCELL_DATA;
+//bool LOADCELL_ENABLE = false;
+//unsigned char LOADCELL_SAMPLE_NUM = 2;
 unsigned char ICE_Wast_Water_Sensor;
 
 LAN2CAN_DATA gv;
 ST_ICE_DATA ICE_INFO;
 ST_CUP_DATA CUP_INFO;
 ST_DRINKOUT_DATA DRINKOUT_INFO;
-ICE_VALVE_DATA ICE_VALVE;
+ST_ICE_VALVE_DATA ICE_VALVE;
 
 unsigned char BARCODE_DATA[BARCODE_SIZE] = {0,};
 int BARCODE_LOCK = 0;
 
 //averaged number of pulses in delay time
 //#define DELAY_LOADCELL_TIME_IN_TIMER 35536644.65
-#define DELAY_LOADCELL_TIME_IN_TIMER 30650000
+#define LOADCELL_DELAY_TIME_1 30650000
+#define LOADCELL_DELAY_TIME_2 20000000
 float LOADCELL_THRESHOLD = 160;
 
 unsigned char DIO_0[4] = {0,};
@@ -82,7 +86,11 @@ void LAN2CAN_Initialize(void) {
        HX711_begin(128);
        HX711_set_scale(LOADCELL_CALIB_FACTOR_AT_POS_1);
        HX711_tare(3);
-       LOADCELL_ENABLE=0;
+//       LOADCELL_ENABLE=0;
+       LOADCELL_INFO.isEnabled = 0;
+       LOADCELL_INFO.focusMode = 0;
+       LOADCELL_INFO.start_making = 0;
+       LOADCELL_INFO.threshold = 160;
     }else if(BOARD_ID == 1){
         // Ice & Cup  
     }
@@ -113,13 +121,15 @@ int lan_connection_delay = 0;
 float test_data[255];
 float val1=0, val2=0, time_real, flowrate = 0, delta_time, pre_data, error_data, delayed_amount;
 int t1, t2, time1, time2, time_end = 0;
-int test=0;
+int test=0, real_threshold = 160;
+unsigned char focus_mode = 0;
 void LAN2CAN_Tasks(void) {
     
     if(BOARD_ID == 0){
 
 //        //new algorithm
-//            if(test%3800==0 && (val1==0)){ 
+//        if(LOADCELL_ENABLE){
+//            if(test%3000==0){ 
 //                LOADCELL_DATA = HX711_get_units(1);
 //                if((LOADCELL_DATA >= (LOADCELL_THRESHOLD*20/100)) && (val1 ==0)){
 //                LOADCELL_SAMPLE_NUM=0;
@@ -133,17 +143,20 @@ void LAN2CAN_Tasks(void) {
 //                    time1 = ((int)(TMR3) << 16) | TMR2;
 //                    val1 = LOADCELL_DATA;
 //                    LOADCELL_SAMPLE_NUM++;
+//                    printf("val1: %f ", val1);
 //                    
 //                }
-//                if((LOADCELL_DATA >= (LOADCELL_THRESHOLD*75/100)) && (val1 !=0) && (flowrate == 0)){
+//                else if((LOADCELL_DATA >= (LOADCELL_THRESHOLD*75/100)) && (val1 !=0) && (flowrate == 0)){
 //                    time2 = ((int)(TMR3) << 16) | TMR2;
 //                    val2 = LOADCELL_DATA;
+//                    printf("val2: %f ", val2);
 //                    delta_time = (time2>time1) ? (time2-time1) : ((pow(2,32) - 1)-time2)+time1;
 //                    flowrate = ((val2-val1)*1000) / delta_time;
+//                    printf("flow: %f ", flowrate);
 //                    if(flowrate < 0){
 //                        
 //                    }
-//                    LOADCELL_THRESHOLD -= (flowrate * DELAY_LOADCELL_TIME_IN_TIMER/1000);
+//                    LOADCELL_THRESHOLD -= (flowrate * LOADCELL_DELAY_TIME_2/1000);
 //                    int time_left = (LOADCELL_THRESHOLD - val2) / flowrate;
 //                    time_end = ((time_left + time2) < (pow(2,32)-1)) ? (time_left+time2) : ((time_left+time2)-(pow(2,32)-1));
 //                    LOADCELL_SAMPLE_NUM++;
@@ -151,61 +164,91 @@ void LAN2CAN_Tasks(void) {
 //            }
 //            
 //            if(time_end !=0){
+////                printf("time end");
 //                if(time_end > time2){
 //                    if((((int)(TMR3) << 16) | TMR2) >= time_end){
 //                    PORTBbits.RB5 = 0;
 //                    Nop();
-//                    time1=0; time2=0; val1=0; val2=0; flowrate=0; time_end=0; LOADCELL_SAMPLE_NUM=2; 
+//                    time1=0; time2=0; val1=0; val2=0; flowrate=0; time_end=0;
+//                    LOADCELL_ENABLE = 0;
 //                    }
 //                }else{
 //                    if( ((((int)(TMR3) << 16) | TMR2) < time2) && ((((int)(TMR3) << 16) | TMR2) >= time_end)){
 //                    PORTBbits.RB5 = 0;
 //                    Nop();
-//                    time1=0; time2=0; val1=0; val2=0; flowrate=0; time_end=0; LOADCELL_SAMPLE_NUM=2;
+//                    time1=0; time2=0; val1=0; val2=0; flowrate=0; time_end=0;
+//                    LOADCELL_ENABLE = 0;
 //                    }
 //                }
 //            }
 //            else{
 //                PORTBbits.RB5 = 1;
 //            }
-
+//        }
             
             //old algorithm
-        if(LOADCELL_ENABLE){
-        if(test%4000==0){
-        LOADCELL_DATA = HX711_get_units(1);
-//        printf("%f ",LOADCELL_DATA);
-        }
-        test++;
+        if(LOADCELL_INFO.isEnabled){
+            if(LOADCELL_INFO.focusMode == 0){
+                if(test%350000==0){
+                    LOADCELL_INFO.data = HX711_get_units(1);
+                    printf("0 ");
+                }
+            }else if(LOADCELL_INFO.focusMode == 1){
+                if(test%100000==0){
+                    LOADCELL_INFO.data = HX711_get_units(1);
+                    printf("1 ");
+                }
+            }else if(LOADCELL_INFO.focusMode == 2){
+                if(test%10000==0){
+                    LOADCELL_INFO.data = HX711_get_units(1);
+                    printf("2 ");
+                }
+            }else{
+                if(test%800==0){
+                    LOADCELL_INFO.data = HX711_get_units(1);
+                    printf("3 ");
+                }
+            }test++;
 
-  
-        if((LOADCELL_DATA >= ((LOADCELL_THRESHOLD*30)/100)) && val1 == 0){            
+
+       if(LOADCELL_INFO.start_making){
+           if(LOADCELL_INFO.focusMode == 0) { LOADCELL_INFO.focusMode = 1; }
+           
+        if((LOADCELL_INFO.data >= ((real_threshold *30)/100)) && val1 == 0){            
              time1 = ((int)(TMR3) << 16) | TMR2;
-             val1 = LOADCELL_DATA;
+             val1 = LOADCELL_INFO.data;
             // printf("%f ",val1);
         }
-        else if((LOADCELL_DATA > ((LOADCELL_THRESHOLD*75)/100)) && val1 != 0 && flowrate == 0){    
+        else if((LOADCELL_INFO.data > ((real_threshold *75)/100)) && val1 != 0 && flowrate == 0){    
              time2 = ((int)(TMR3) << 16) | TMR2;
-             val2 = LOADCELL_DATA;
+             val2 = LOADCELL_INFO.data;
            // printf("%f ",val2);
              delta_time = (time2>time1) ? (time2-time1) : ((pow(2,32) - 1)-time2)+time1;
              flowrate = ((val2-val1)*1000) / delta_time;
+             LOADCELL_INFO.focusMode = 2;
              if(flowrate < 0){
                  
              }
-             LOADCELL_THRESHOLD -= (flowrate * DELAY_LOADCELL_TIME_IN_TIMER/1000);
+             real_threshold = LOADCELL_INFO.threshold - (flowrate * LOADCELL_DELAY_TIME_1/1000);
             // printf("%f ",LOADCELL_THRESHOLD);
         }
         
+        if((LOADCELL_INFO.data > ((real_threshold *95)/100)) ){
+            LOADCELL_INFO.focusMode = 3;
+        }
         
-        if(LOADCELL_DATA >= LOADCELL_THRESHOLD){
+        
+        if(LOADCELL_INFO.data >= real_threshold){
                 PORTBbits.RB5 = 0;
                // printf("%f ",LOADCELL_DATA);
-                time1=0;time2=0;val1=0;val2=0;flowrate=0;
+                time1=0;time2=0;val1=0;val2=0;flowrate=0; LOADCELL_INFO.focusMode = 0; LOADCELL_INFO.start_making = 0;
+                real_threshold = LOADCELL_INFO.threshold;
         }else{
             PORTBbits.RB5 = 1;
         }
-        }
+      }
+  
+    }
 
     }
     
@@ -474,10 +517,10 @@ int LAN2CAN_LANDataParsing(void) {
                             HX711_tare(1);
                             break;
                         case 1:
-                            LOADCELL_ENABLE = para1;
+                            LOADCELL_INFO.isEnabled = para1;
                             break;
                         case 2:
-                            LOADCELL_THRESHOLD = para1;
+                            LOADCELL_INFO.threshold = para1;
                             break;
                         case 3:{
                             if(para1==1){
@@ -493,6 +536,9 @@ int LAN2CAN_LANDataParsing(void) {
                             }
                             break;
                         }
+                        case 4:
+                            LOADCELL_INFO.start_making = para1;
+                            break;
                         default:
                             break;
                     }
@@ -565,22 +611,7 @@ int LAN2CAN_LANDataParsing(void) {
                             break;
                     }
                 }
-                else if(target == 2){
-                    // Test
-                    switch(command){
-                        case 0:
-                            //set 0
-                            HX711_tare(1);
-                            break;
-                        case 1:
-                            LOADCELL_ENABLE = para1;
-                            break;
-                        case 2:
-                            LOADCELL_THRESHOLD = para1;
-                        default:
-                            break;
-                    }
-                }
+                
              
             }
                 break;
@@ -727,7 +758,7 @@ int LAN2CAN_CANSendToMainController(void) {
         // Sensor & Door & Bar code
         gv.lanData.msgToClient[currentIndex] = 0x24;        currentIndex++;
         // Calculate data size
-        dataSize = 4 + 4 + 41 + 4 + 1 + BARCODE_SIZE;
+        dataSize = 4 + 6 + 41 + 5 + BARCODE_SIZE;
         gv.lanData.msgToClient[currentIndex] = (uint8_t) (dataSize);   currentIndex++;
         gv.lanData.msgToClient[currentIndex] = (uint8_t) (dataSize >> 8);  currentIndex++;
         // From slave   
@@ -737,13 +768,14 @@ int LAN2CAN_CANSendToMainController(void) {
         // Data type: SENSOR & DOOR & BARCODE
         gv.lanData.msgToClient[currentIndex] = 0xF0;       currentIndex++;
         
-        // Sensor Data (4 byte)
-        gv.lanData.msgToClient[currentIndex] = (int)(LOADCELL_DATA) & 0xFF;                     currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = ((int)(LOADCELL_DATA) >> 8) & 0xFF;              currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = ((int)(LOADCELL_DATA) >> 16) & 0xFF;             currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = ((int)(LOADCELL_DATA) >> 24) & 0xFF;             currentIndex++;
+        // Load cell Data (6 byte)
+        gv.lanData.msgToClient[currentIndex] = (int)(LOADCELL_INFO.data) & 0xFF;                     currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = ((int)(LOADCELL_INFO.data) >> 8) & 0xFF;              currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = ((int)(LOADCELL_INFO.data) >> 16) & 0xFF;             currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = ((int)(LOADCELL_INFO.data) >> 24) & 0xFF;             currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = LOADCELL_INFO.isEnabled;                              currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = LOADCELL_INFO.start_making;                           currentIndex++;
         
-       
         
         //DRINKOUT system data (41 bytes)
         gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.connection;                                        currentIndex++;
@@ -797,14 +829,12 @@ int LAN2CAN_CANSendToMainController(void) {
         gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_right.Door.isProfileSet;                    currentIndex++;
         gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_right.Door.isTorqueOn;                      currentIndex++;
         
-        //Ice valve
+        //Ice valve (5 bytes)
         gv.lanData.msgToClient[currentIndex] = ICE_VALVE.motor.connection;                                      currentIndex++;
         gv.lanData.msgToClient[currentIndex] = ICE_VALVE.motor.isProfileSet;                                    currentIndex++;
         gv.lanData.msgToClient[currentIndex] = ICE_VALVE.motor.isTorqueOn;                                      currentIndex++;
         gv.lanData.msgToClient[currentIndex] = ICE_VALVE.lock_state;                                            currentIndex++;
-        
-        //waste water sensor (1 byte))
-        gv.lanData.msgToClient[currentIndex] = ICE_Wast_Water_Sensor;                                            currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = ICE_VALVE.sensor;                                                currentIndex++;
         
          // Bar code Data (BARCODE_SIZE bytes)
         int idx = 0;
@@ -951,7 +981,7 @@ void LAN2CAN_TaskFunction(void){
 
     if(BOARD_ID == 0){
         // Sensor & Door & Bar code
-        switch(drinkout_cnt%50){
+        switch(drinkout_cnt%70){
             case 0:
             {
                 if(DRINKOUT_INFO.module_left.Disk.command_state == MOTOR_IDLE){                   
@@ -1410,7 +1440,8 @@ void LAN2CAN_TaskFunction(void){
                 break;     
             case 8:
             {
-                DRINKOUT_INFO.module_left.ready = (DRINKOUT_INFO.module_left.Disk.connection && DRINKOUT_INFO.module_left.Disk.isProfileSet && DRINKOUT_INFO.module_left.Disk.isTorqueOn &&
+                DRINKOUT_INFO.module_left.ready = (DRINKOUT_INFO.module_left.Disk.connection && DRINKOUT_INFO.module_left.Disk.isProfileSet && DRINKOUT_INFO.module_left.Disk.isProfileAceleSet &&
+                        DRINKOUT_INFO.module_left.Disk.isPPGainSet &&DRINKOUT_INFO.module_left.Disk.isPDGainSet && DRINKOUT_INFO.module_left.Disk.isTorqueOn && 
                         DRINKOUT_INFO.module_left.Door.connection && DRINKOUT_INFO.module_left.Door.isProfileSet && DRINKOUT_INFO.module_left.Door.isTorqueOn);
                 DRINKOUT_INFO.module_middle_left.ready = (DRINKOUT_INFO.module_middle_left.Disk.connection && DRINKOUT_INFO.module_middle_left.Disk.isProfileSet && DRINKOUT_INFO.module_middle_left.Disk.isProfileAceleSet &&
                         DRINKOUT_INFO.module_middle_left.Disk.isPPGainSet && DRINKOUT_INFO.module_middle_left.Disk.isPDGainSet && DRINKOUT_INFO.module_middle_left.Disk.isTorqueOn &&
@@ -1522,9 +1553,9 @@ void PORTFunction(){
 //        DIO_0[1] = PORTBbits.RB3;
 //        DIO_0[2] = PORTBbits.RB4;
 //        DIO_0[3] = PORTBbits.RB5;
-//        ICE_Wast_Water_Sensor = PORTBbits.RB4;
+//        ICE_VALVE.sensor = PORTBbits.RB4;
         DRINKOUT_INFO.module_left.cupPresent = PORTBbits.RB4;
-        Nop();
+        
         
     }else if(BOARD_ID == 1){
         // Ice & Cup & tea
@@ -1672,7 +1703,7 @@ void UART3Function(){
         
         if(BOARD_ID == 0){
             // Sensor & Door
-            printf("%c", temp_ch);
+//            printf("%c", temp_ch);
             
             switch(DrinkOut_state){
                 case 0:
@@ -1682,7 +1713,7 @@ void UART3Function(){
                     }
                     break;
                 case 1:
-                    if(temp_ch == 0xFF | (temp_ch == 0xFD)){
+                    if(temp_ch == 0xFF || (temp_ch == 0xFD)){
                         // match header  2
                         DrinkOut_state = 2;
                      }
@@ -1691,7 +1722,7 @@ void UART3Function(){
                     }
                     break;
                 case 2:
-                    if(temp_ch == 0xFD | (temp_ch == 0x00)){
+                    if(temp_ch == 0xFD || (temp_ch == 0x00)){
                         // match header 3
                         DrinkOut_state = 3;
                     }
@@ -1700,7 +1731,7 @@ void UART3Function(){
                     }
                     break;
                 case 3:
-                    if((temp_ch == 0x00) | (temp_ch == 0xFD)){
+                    if((temp_ch == 0x00) || (temp_ch == 0xFD)){
                         // match header 4
                         DrinkOut_state = 4;
                         DrinkOut_index = 0;

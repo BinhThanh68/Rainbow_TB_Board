@@ -135,7 +135,8 @@ typedef struct
 {
     MOTOR_STATE motor;
     unsigned char lock_state;
-} ICE_VALVE_DATA;
+    unsigned char sensor;
+} ST_ICE_VALVE_DATA;
 
 // Client socket definition
 typedef struct
@@ -255,7 +256,13 @@ typedef struct _ST_CUP_DATA_{
     unsigned char     soldout_stat;
 }ST_CUP_DATA;
 
-
+typedef struct _ST_LOADCELL_DATA{
+    float             data;
+    float             threshold;
+    unsigned char     isEnabled;
+    unsigned char     focusMode;
+    unsigned char     start_making;
+}ST_LOADCELL_DATA;
 
 #define BARCODE_SIZE    20
 extern unsigned char BARCODE_DATA[BARCODE_SIZE];
