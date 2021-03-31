@@ -23,15 +23,15 @@ void CUP_RequestStatus();
 void CUP_RequestCupOut(int port_num, int output_num);
 void CUP_RequestSoldOut();
 
-
+void DRINKOUT_CheckConnection(unsigned char ID);
 void DRINKOUT_SetProfile(unsigned char ID);
 void DRINKOUT_SetProfile_Acele(unsigned char ID);
 void DRINKOUT_SetPPGain(unsigned char ID);
 void DRINKOUT_SetPDGain(unsigned char ID);
-void DRINKOUT_CheckConnection(unsigned char ID);
+void DRINKOUT_TurnTorque(unsigned char ID, unsigned char ON_OFF);
 //goal_position 1~3
 void DRINKOUT_Go(unsigned char ID, short goal_pos);
-void DRINKOUT_TurnTorque(unsigned char ID, unsigned char ON_OFF);
+
 
 long DRINK_GetWeight();
 

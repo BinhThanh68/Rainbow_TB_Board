@@ -88,8 +88,18 @@ typedef struct
     unsigned char isPDGainSet;
     unsigned char isPPGainSet;
     unsigned char isTorqueOn;
+    int           presentPosition;
     MOTOR_COMMAND_STATE command_state;
-} MOTOR_STATE;
+} MOTOR_DISK_STATE;
+
+typedef struct
+{
+    unsigned char connection;
+    unsigned char isProfileSet;
+    unsigned char isTorqueOn;
+    int           presentPosition;
+    MOTOR_COMMAND_STATE command_state;
+} MOTOR_DOOR_STATE;
 
 typedef struct
 {
@@ -97,8 +107,8 @@ typedef struct
     unsigned char ready;
     unsigned char currentPosition;
     unsigned char doorstate;
-    MOTOR_STATE Door;
-    MOTOR_STATE Disk;
+    MOTOR_DISK_STATE Disk;
+    MOTOR_DOOR_STATE Door;
 } DRINKOUT_ONE_MODULE;
 
 typedef struct
@@ -133,7 +143,7 @@ typedef enum
 
 typedef struct
 {
-    MOTOR_STATE motor;
+    MOTOR_DOOR_STATE motor;
     unsigned char lock_state;
     unsigned char sensor;
 } ST_ICE_VALVE_DATA;

@@ -253,56 +253,49 @@ void DRINKOUT_Go(unsigned char ID, short goal_pos){
     send_data[7] = 0x03; //instruction
     send_data[8] = 0x74; //address
     send_data[9] = 0x00; //address
+    //id = 1
     if(ID == MODULE_LEFT_DISK){
-        switch(goal_pos){
-        case MOTOR_POSITION_OUTLET1:{
-            //go 825
-            send_data[10] = 0x39; //data1
+        if(goal_pos == MOTOR_POSITION_OUTLET1){
+            //go 840
+            send_data[10] = 0x48; //data1
             send_data[11] = 0x03; //data2
             send_data[12] = 0x00; //data3
             send_data[13] = 0x00; //data4
-            send_data[14] = 0xD7; //CRC1
-            send_data[15] = 0x7D; //CRC2
-        }
-            break;
-        case MOTOR_POSITION_OUTLET2:{
-            //go 2187
+            send_data[14] = 0xC3; //CRC1
+            send_data[15] = 0xA9; //CRC2
+        }else if(goal_pos == MOTOR_POSITION_OUTLET2){
+            //go 2205
             send_data[10] = 0x9D; //data1
             send_data[11] = 0x08; //data2
             send_data[12] = 0x00; //data3
             send_data[13] = 0x00; //data4
             send_data[14] = 0x78; //CRC1
             send_data[15] = 0x2D; //CRC2
-        }
-            break;
-        case MOTOR_POSITION_OUTLET3:{
-            //go 3552
-            send_data[10] = 0xEE; //data1
+        }else if(goal_pos == MOTOR_POSITION_OUTLET3){
+            //go 3575
+            send_data[10] = 0xF7; //data1
             send_data[11] = 0x0D; //data2
             send_data[12] = 0x00; //data3
             send_data[13] = 0x00; //data4
-            send_data[14] = 0x2B; //CRC1
-            send_data[15] = 0x51; //CRC2
-        }
-            break;
-        default:
-            break;   
-        }
+            send_data[14] = 0x2D; //CRC1
+            send_data[15] = 0xA5; //CRC2
+        } 
     }
+    //id =2
     else if(ID == MODULE_LEFT_DOOR){
         if(goal_pos == MOTOR_POSITION_DOOR_OPEN){
             //go open
-            //test 2930
-            send_data[10] = 0x72; //data1
+            //test 3000
+            send_data[10] = 0xB8; //data1
             send_data[11] = 0x0B; //data2
             send_data[12] = 0x00; //data3
             send_data[13] = 0x00; //data4
-            send_data[14] = 0x56; //CRC1
-            send_data[15] = 0xC1; //CRC2
+            send_data[14] = 0x74; //CRC1
+            send_data[15] = 0x49; //CRC2
         }
         else if(goal_pos == MOTOR_POSITION_DOOR_CLOSE){
             //go close
-            //test 4000
+            //test 10730
             send_data[10] = 0xEA; //data1
             send_data[11] = 0x29; //data2
             send_data[12] = 0x00; //data3
@@ -311,6 +304,58 @@ void DRINKOUT_Go(unsigned char ID, short goal_pos){
             send_data[15] = 0x23; //CRC2
         }
     }
+    //id=3
+    else if(ID == MODULE_MIDDLE_LEFT_DISK){
+        if(goal_pos == MOTOR_POSITION_OUTLET1){
+            //go 840
+            send_data[10] = 0x48; //data1
+            send_data[11] = 0x03; //data2
+            send_data[12] = 0x00; //data3
+            send_data[13] = 0x00; //data4
+            send_data[14] = 0xE8; //CRC1
+            send_data[15] = 0xE9; //CRC2
+        }else if(goal_pos == MOTOR_POSITION_OUTLET2){
+            //go 2205
+            send_data[10] = 0x9D; //data1
+            send_data[11] = 0x08; //data2
+            send_data[12] = 0x00; //data3
+            send_data[13] = 0x00; //data4
+            send_data[14] = 0x53; //CRC1
+            send_data[15] = 0x6D; //CRC2
+        }else if(goal_pos == MOTOR_POSITION_OUTLET3){
+            //go 3575
+            send_data[10] = 0xF7; //data1
+            send_data[11] = 0x0D; //data2
+            send_data[12] = 0x00; //data3
+            send_data[13] = 0x00; //data4
+            send_data[14] = 0x06; //CRC1
+            send_data[15] = 0xE5; //CRC2
+        } 
+    }
+    //id = 4
+    else if(ID == MODULE_MIDDLE_LEFT_DOOR){
+        if(goal_pos == MOTOR_POSITION_DOOR_OPEN){
+            //go open
+            //test 80
+            send_data[10] = 0x50; //data1
+            send_data[11] = 0x00; //data2
+            send_data[12] = 0x00; //data3
+            send_data[13] = 0x00; //data4
+            send_data[14] = 0xBB; //CRC1
+            send_data[15] = 0xA9; //CRC2
+        }
+        else if(goal_pos == MOTOR_POSITION_DOOR_CLOSE){
+            //go close
+            //test 7830
+            send_data[10] = 0x96; //data1
+            send_data[11] = 0x1E; //data2
+            send_data[12] = 0x00; //data3
+            send_data[13] = 0x00; //data4
+            send_data[14] = 0x01; //CRC1
+            send_data[15] = 0xD0; //CRC2
+        }
+    }
+    
 //    WriteUART4(send_data, 16);
     WriteUART3(send_data, 16);
 }
@@ -336,9 +381,7 @@ void DRINKOUT_TurnTorque(unsigned char ID, unsigned char ON_OFF){
             send_data[11] = 0xDB; //CRC1
             send_data[12] = 0x66; //CRC2
         }
-        else{
-            send_data[11] = 0xDE; //CRC1
-            send_data[12] = 0xE6; //CRC2
+        else{//for turning torque off
         }
     }
     else if(ID == 2) {
@@ -347,8 +390,54 @@ void DRINKOUT_TurnTorque(unsigned char ID, unsigned char ON_OFF){
             send_data[12] = 0x65; //CRC2
         }
         else{
-            send_data[11] = 0xEE; //CRC1
-            send_data[12] = 0xE5; //CRC2
+        }
+    }
+    else if(ID == 3) {
+        if(ON_OFF == 1){
+            send_data[11] = 0xF8; //CRC1
+            send_data[12] = 0xE4; //CRC2
+        }
+        else{
+        }
+    }
+    else if(ID == 4) {
+        if(ON_OFF == 1){
+            send_data[11] = 0x8B; //CRC1
+            send_data[12] = 0x63; //CRC2
+        }
+        else{
+        }
+    }
+    else if(ID == 5) {
+        if(ON_OFF == 1){
+            send_data[11] = 0x98; //CRC1
+            send_data[12] = 0xE2; //CRC2
+        }
+        else{
+        }
+    }
+    else if(ID == 6) {
+        if(ON_OFF == 1){
+            send_data[11] = 0xA8; //CRC1
+            send_data[12] = 0xE1; //CRC2
+        }
+        else{
+        }
+    }
+    else if(ID == 7) {
+        if(ON_OFF == 1){
+            send_data[11] = 0xBB; //CRC1
+            send_data[12] = 0x60; //CRC2
+        }
+        else{
+        }
+    }
+    else if(ID == 8) {
+        if(ON_OFF == 1){
+            send_data[11] = 0x4B; //CRC1
+            send_data[12] = 0x6F; //CRC2
+        }
+        else{
         }
     }
   
@@ -370,9 +459,17 @@ void DRINKOUT_CheckConnection(unsigned char ID){
         send_data[8] = 0x19; //CRC1
         send_data[9] = 0x4E; //CRC2    
     }
-    else if(ID == 0x02){
+    else if(ID == 2){
         send_data[8] = 0x19; //CRC1
         send_data[9] = 0x72; //CRC2    
+    }
+    else if(ID == 3){
+        send_data[8] = 0x1A; //CRC1
+        send_data[9] = 0xE6; //CRC2    
+    }
+    else if(ID == 4){
+        send_data[8] = 0x19; //CRC1
+        send_data[9] = 0x0A; //CRC2    
     }
     
 //    WriteUART4(send_data, 10);
@@ -405,7 +502,7 @@ void DRINKOUT_SetProfile(unsigned char ID){
         send_data[15] = 0x49; //CRC2
     }
     else if(ID == MODULE_LEFT_DOOR){
-        send_data[10] = 0x96; //data1  default:40
+        send_data[10] = 0x96; //data1  default:150
         send_data[11] = 0x00; //data2
         send_data[12] = 0x00; //data3
         send_data[13] = 0x00; //data4
@@ -413,28 +510,52 @@ void DRINKOUT_SetProfile(unsigned char ID){
         send_data[15] = 0xF1; //CRC2
     }
     else if(ID == MODULE_MIDDLE_LEFT_DISK){
+        send_data[10] = 0x28; //data1  default:40
+        send_data[11] = 0x00; //data2
+        send_data[12] = 0x00; //data3
+        send_data[13] = 0x00; //data4
         send_data[14] = 0xC3; //CRC1
         send_data[15] = 0x09; //CRC2
     }
     else if(ID == MODULE_MIDDLE_LEFT_DOOR){
-        send_data[14] = 0xA9; //CRC1
-        send_data[15] = 0x29; //CRC2
+        send_data[10] = 0x96; //data1  default:150
+        send_data[11] = 0x00; //data2
+        send_data[12] = 0x00; //data3
+        send_data[13] = 0x00; //data4
+        send_data[14] = 0x9F; //CRC1
+        send_data[15] = 0x31; //CRC2
     }
     else if(ID == MODULE_MIDDLE_RIGHT_DISK){
+        send_data[10] = 0x28; //data1  default:40
+        send_data[11] = 0x00; //data2
+        send_data[12] = 0x00; //data3
+        send_data[13] = 0x00; //data4
         send_data[14] = 0xBE; //CRC1
         send_data[15] = 0xC9; //CRC2
     }
     else if(ID == MODULE_MIDDLE_RIGHT_DOOR){
-        send_data[14] = 0x82; //CRC1
-        send_data[15] = 0x69; //CRC2
+        send_data[10] = 0x96; //data1  default:150
+        send_data[11] = 0x00; //data2
+        send_data[12] = 0x00; //data3
+        send_data[13] = 0x00; //data4
+        send_data[14] = 0xB4; //CRC1
+        send_data[15] = 0x71; //CRC2
     }
     else if(ID == MODULE_RIGHT_DISK){
+        send_data[10] = 0x28; //data1  default:40
+        send_data[11] = 0x00; //data2
+        send_data[12] = 0x00; //data3
+        send_data[13] = 0x00; //data4
         send_data[14] = 0x95; //CRC1
         send_data[15] = 0x89; //CRC2
     }
     else if(ID == MODULE_RIGHT_DOOR){
-        send_data[14] = 0x56; //CRC1
-        send_data[15] = 0x29; //CRC2
+        send_data[10] = 0x96; //data1  default:150
+        send_data[11] = 0x00; //data2
+        send_data[12] = 0x00; //data3
+        send_data[13] = 0x00; //data4
+        send_data[14] = 0x60; //CRC1
+        send_data[15] = 0x31; //CRC2
     }
     else if(ID == DRINKOUT_ALL_DEVICES){
         send_data[14] = 0xE2; //CRC1
@@ -497,23 +618,23 @@ void DRINKOUT_SetPPGain(unsigned char ID){
     send_data[7] = 0x03; //instruction    
     send_data[8] = 0x54; //address1
     send_data[9] = 0x00; //address1
-    send_data[10] = 0xB8; //data1  default:4500
-    send_data[11] = 0x0B; //data2
+    send_data[10] = 0xFF; //data1  default:16383
+    send_data[11] = 0x3F; //data2
     if(ID == MODULE_LEFT_DISK){
-        send_data[12] = 0x72; //CRC1
-        send_data[13] = 0x5D; //CRC2
+        send_data[12] = 0xCC; //CRC1
+        send_data[13] = 0xCF; //CRC2
     } 
     else if(ID == MODULE_MIDDLE_LEFT_DISK){
-//        send_data[12] = 0xC3; //CRC1
-//        send_data[13] = 0x09; //CRC2
+        send_data[12] = 0xC0; //CRC1
+        send_data[13] = 0xEF; //CRC2
     }
     else if(ID == MODULE_MIDDLE_RIGHT_DISK){
-//        send_data[12] = 0xBE; //CRC1
-//        send_data[13] = 0xC9; //CRC2
+        send_data[12] = 0xD4; //CRC1
+        send_data[13] = 0x8F; //CRC2
     }
     else if(ID == MODULE_RIGHT_DISK){
-//        send_data[12] = 0x95; //CRC1
-//        send_data[13] = 0x89; //CRC2
+        send_data[12] = 0xD8; //CRC1
+        send_data[13] = 0xAF; //CRC2
     }
 //    WriteUART4(send_data, 14);
     WriteUART3(send_data, 14);
@@ -533,23 +654,23 @@ void DRINKOUT_SetPDGain(unsigned char ID){
     send_data[7] = 0x03; //instruction    
     send_data[8] = 0x50; //address1
     send_data[9] = 0x00; //address1
-    send_data[10] = 0x94; //data1  default:4500
-    send_data[11] = 0x11; //data2
+    send_data[10] = 0xFF; //data1  default:16383
+    send_data[11] = 0x3F; //data2
     if(ID == MODULE_LEFT_DISK){
-        send_data[12] = 0x2D; //CRC1
-        send_data[13] = 0x65; //CRC2
+        send_data[12] = 0xCF; //CRC1
+        send_data[13] = 0x1F; //CRC2
     }   
     else if(ID == MODULE_MIDDLE_LEFT_DISK){
-//        send_data[12] = 0xC3; //CRC1
-//        send_data[13] = 0x09; //CRC2
+        send_data[12] = 0xC3; //CRC1
+        send_data[13] = 0x3F; //CRC2
     }
     else if(ID == MODULE_MIDDLE_RIGHT_DISK){
-//        send_data[12] = 0xBE; //CRC1
-//        send_data[13] = 0xC9; //CRC2
+        send_data[12] = 0xD7; //CRC1
+        send_data[13] = 0x5F; //CRC2
     }
     else if(ID == MODULE_RIGHT_DISK){
-//        send_data[12] = 0x95; //CRC1
-//        send_data[13] = 0x89; //CRC2
+        send_data[12] = 0xDB; //CRC1
+        send_data[13] = 0x7F; //CRC2
     } 
 //    WriteUART4(send_data, 14);
     WriteUART3(send_data, 14);
