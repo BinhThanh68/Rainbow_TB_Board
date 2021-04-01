@@ -78,6 +78,8 @@ typedef enum
     MOTOR_WAIT_GO_POS3,
     MOTOR_WAIT_DOOR_OPEN,
     MOTOR_WAIT_DOOR_CLOSE,
+    MOTOR_WAIT_READ_MOVING_STATUS,
+    MOTOR_WAIT_READ_POSITION
 } MOTOR_COMMAND_STATE;
 
 typedef struct
@@ -88,7 +90,8 @@ typedef struct
     unsigned char isPDGainSet;
     unsigned char isPPGainSet;
     unsigned char isTorqueOn;
-    int           presentPosition;
+    unsigned char movingStatus;
+    unsigned int           presentPosition;
     MOTOR_COMMAND_STATE command_state;
 } MOTOR_DISK_STATE;
 
@@ -97,7 +100,9 @@ typedef struct
     unsigned char connection;
     unsigned char isProfileSet;
     unsigned char isTorqueOn;
-    int           presentPosition;
+    unsigned char movingStatus;
+    //check motor encoder value range, could be int
+    unsigned int           presentPosition;
     MOTOR_COMMAND_STATE command_state;
 } MOTOR_DOOR_STATE;
 

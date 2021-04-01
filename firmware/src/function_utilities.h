@@ -31,8 +31,8 @@ void DRINKOUT_SetPDGain(unsigned char ID);
 void DRINKOUT_TurnTorque(unsigned char ID, unsigned char ON_OFF);
 //goal_position 1~3
 void DRINKOUT_Go(unsigned char ID, short goal_pos);
-
-
+void DRINKOUT_CheckMovingStatus(unsigned char ID);
+void DRINKOUT_ReadPosition(unsigned char ID);
 long DRINK_GetWeight();
 
 

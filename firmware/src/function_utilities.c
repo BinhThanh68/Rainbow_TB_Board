@@ -729,6 +729,78 @@ void DRINKOUT_ReadTorqueStatus(unsigned char ID){
     WriteUART3(send_data, 14);
 }
 
+
+void DRINKOUT_CheckMovingStatus(unsigned char ID){
+    unsigned char send_data[14];
+    send_data[0] = 0xFF; //header 1
+    send_data[1] = 0xFF; //header 2
+    send_data[2] = 0xFD; //header 3
+    send_data[3] = 0x00; //reserved
+    send_data[4] = ID;   //ID
+    send_data[5] = 0x07; //length
+    send_data[6] = 0x00; //length 2
+    send_data[7] = 0x02; //instruction
+    send_data[8] = 0x7A; //address 1
+    send_data[9] = 0x00; //address 2
+    send_data[10] = 0x01; //address 1
+    send_data[11] = 0x00; //address 2
+    if(ID == 1){
+        
+        send_data[12] = 0x36; //CRC1
+        send_data[13] = 0x93; //CRC2    
+    }
+    else if(ID == 2){
+        send_data[12] = 0x3C; //CRC1
+        send_data[13] = 0xA3; //CRC2    
+    }
+    else if(ID == 3){
+        send_data[12] = 0x3A; //CRC1
+        send_data[13] = 0xB3; //CRC2    
+    }
+    else if(ID == 4){
+        send_data[12] = 0x28; //CRC1
+        send_data[13] = 0xC3; //CRC2    
+    }
+    
+//    WriteUART4(send_data, 14);
+    WriteUART3(send_data, 14);
+}
+
+void DRINKOUT_ReadPosition(unsigned char ID){
+    unsigned char send_data[14];
+    send_data[0] = 0xFF; //header 1
+    send_data[1] = 0xFF; //header 2
+    send_data[2] = 0xFD; //header 3
+    send_data[3] = 0x00; //reserved
+    send_data[4] = ID;   //ID
+    send_data[5] = 0x07; //length
+    send_data[6] = 0x00; //length 2
+    send_data[7] = 0x02; //instruction
+    send_data[8] = 0x84; //address 1
+    send_data[9] = 0x00; //address 2
+    send_data[10] = 0x04; //address 1
+    send_data[11] = 0x00; //address 2
+    if(ID == 1){
+        
+        send_data[12] = 0x1D; //CRC1
+        send_data[13] = 0x15; //CRC2    
+    }
+    else if(ID == 2){
+        send_data[12] = 0x17; //CRC1
+        send_data[13] = 0x25; //CRC2    
+    }
+    else if(ID == 3){
+        send_data[12] = 0x11; //CRC1
+        send_data[13] = 0x35; //CRC2    
+    }
+    else if(ID == 4){
+        send_data[12] = 0x03; //CRC1
+        send_data[13] = 0x45; //CRC2    
+    } 
+//    WriteUART4(send_data, 14);
+    WriteUART3(send_data, 14);
+}
+
 long DRINK_GetWeight(){
     return HX711_get_units(1);
 }
@@ -824,3 +896,5 @@ void ICE_Valve_Set_Torque(){
       
     WriteUART4(send_data, 13);
 }
+
+

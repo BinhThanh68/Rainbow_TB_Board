@@ -225,8 +225,7 @@ void LAN2CAN_Tasks(void) {
              delta_time = (time2>time1) ? (time2-time1) : ((pow(2,32) - 1)-time2)+time1;
              flowrate = ((val2-val1)*1000) / delta_time;
              LOADCELL_INFO.focusMode = 2;
-             if(flowrate < 0){
-                 
+             if(flowrate < 0){          
              }
              real_threshold = LOADCELL_INFO.threshold - (flowrate * LOADCELL_DELAY_TIME_1/1000);
             // printf("%f ",LOADCELL_THRESHOLD);
@@ -551,6 +550,16 @@ int LAN2CAN_LANDataParsing(void) {
                             SetMotorCommandState(para1, para2);
                             DRINKOUT_Go((para1&0xFF), (para2&0xFF));
                             break;
+                        case 1:
+                            //para2 = 6 to check moving status
+                            SetMotorCommandState(para1, para2);
+                            DRINKOUT_CheckMovingStatus(para1);
+                            break;
+                        case 2:
+                            //para2 = 7 to read position
+                            SetMotorCommandState(para1, para2);
+                            DRINKOUT_ReadPosition(para1);
+                            break;    
                     }
                 }else if(target==2){
                     //ice valve
@@ -757,7 +766,7 @@ int LAN2CAN_CANSendToMainController(void) {
         // Sensor & Door & Bar code
         gv.lanData.msgToClient[currentIndex] = 0x24;        currentIndex++;
         // Calculate data size
-        dataSize = 4 + 6 + 41 + 5 + BARCODE_SIZE;
+        dataSize = 4 + 6 + 76 + 5 + BARCODE_SIZE;
         gv.lanData.msgToClient[currentIndex] = (uint8_t) (dataSize);   currentIndex++;
         gv.lanData.msgToClient[currentIndex] = (uint8_t) (dataSize >> 8);  currentIndex++;
         // From slave   
@@ -776,57 +785,105 @@ int LAN2CAN_CANSendToMainController(void) {
         gv.lanData.msgToClient[currentIndex] = LOADCELL_INFO.start_making;                           currentIndex++;
         
         
-        //DRINKOUT system data (41 bytes)
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.connection;                                        currentIndex++;
+        //DRINKOUT system data (76 bytes)
+//        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.connection;                                        currentIndex++;
         
         //module left
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_left.ready;                                 currentIndex++;
+//        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_left.ready;                                 currentIndex++;
+//        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_left.currentPosition;                       currentIndex++;        
+//        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_left.doorstate;                             currentIndex++;
         gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_left.cupPresent;                            currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_left.currentPosition;                       currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_left.doorstate;                             currentIndex++;
         gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_left.Disk.connection;                       currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_left.Disk.isProfileSet;                     currentIndex++;
         gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_left.Disk.isTorqueOn;                       currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_left.Disk.isProfileSet;                     currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_left.Disk.isPPGainSet;                      currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_left.Disk.isPDGainSet;                      currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_left.Disk.movingStatus;                     currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_left.Disk.presentPosition)&0xFF;           currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_left.Disk.presentPosition >> 8)&0xFF;      currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_left.Disk.presentPosition >>16)&0xFF;      currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_left.Disk.presentPosition >> 24)&0xFF;     currentIndex++;
         gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_left.Door.connection;                       currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_left.Door.isProfileSet;                     currentIndex++;
         gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_left.Door.isTorqueOn;                       currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_left.Door.isProfileSet;                     currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_left.Door.movingStatus;                     currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_left.Door.presentPosition)&0xFF;           currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_left.Door.presentPosition >> 8)&0xFF;      currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_left.Door.presentPosition >>16)&0xFF;      currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_left.Door.presentPosition >> 24)&0xFF;     currentIndex++;
         
         
         //module middle left
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_left.ready;                          currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_left.cupPresent;                     currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_left.currentPosition;                currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_left.doorstate;                      currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_left.Disk.connection;                currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_left.Disk.isProfileSet;              currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_left.Disk.isTorqueOn;                currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_left.Door.connection;                currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_left.Door.isProfileSet;              currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_left.Door.isTorqueOn;                currentIndex++;
+//        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_left.ready;                                 currentIndex++;
+//        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_left.currentPosition;                       currentIndex++;        
+//        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_left.doorstate;                             currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_left.cupPresent;                            currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_left.Disk.connection;                       currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_left.Disk.isTorqueOn;                       currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_left.Disk.isProfileSet;                     currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_left.Disk.isPPGainSet;                      currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_left.Disk.isPDGainSet;                      currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_left.Disk.movingStatus;                     currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_middle_left.Disk.presentPosition)&0xFF;           currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_middle_left.Disk.presentPosition >> 8)&0xFF;      currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_middle_left.Disk.presentPosition >>16)&0xFF;      currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_middle_left.Disk.presentPosition >> 24)&0xFF;     currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_left.Door.connection;                       currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_left.Door.isTorqueOn;                       currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_left.Door.isProfileSet;                     currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_left.Door.movingStatus;                     currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_middle_left.Door.presentPosition)&0xFF;           currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_middle_left.Door.presentPosition >> 8)&0xFF;      currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_middle_left.Door.presentPosition >>16)&0xFF;      currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_middle_left.Door.presentPosition >> 24)&0xFF;     currentIndex++;
         
         //module middle right
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_right.ready;                         currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_right.cupPresent;                    currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_right.currentPosition;               currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_right.doorstate;                     currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_right.Disk.connection;               currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_right.Disk.isProfileSet;             currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_right.Disk.isTorqueOn;               currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_right.Door.connection;               currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_right.Door.isProfileSet;             currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_right.Door.isTorqueOn;               currentIndex++;
+//        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_right.ready;                                 currentIndex++;
+//        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_right.currentPosition;                       currentIndex++;        
+//        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_right.doorstate;                             currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_right.cupPresent;                            currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_right.Disk.connection;                       currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_right.Disk.isTorqueOn;                       currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_right.Disk.isProfileSet;                     currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_right.Disk.isPPGainSet;                      currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_right.Disk.isPDGainSet;                      currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_right.Disk.movingStatus;                     currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_middle_right.Disk.presentPosition)&0xFF;           currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_middle_right.Disk.presentPosition >> 8)&0xFF;      currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_middle_right.Disk.presentPosition >>16)&0xFF;      currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_middle_right.Disk.presentPosition >> 24)&0xFF;     currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_right.Door.connection;                       currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_right.Door.isTorqueOn;                       currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_right.Door.isProfileSet;                     currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_middle_right.Door.movingStatus;                     currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_middle_right.Door.presentPosition)&0xFF;           currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_middle_right.Door.presentPosition >> 8)&0xFF;      currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_middle_right.Door.presentPosition >>16)&0xFF;      currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_middle_right.Door.presentPosition >> 24)&0xFF;     currentIndex++;
         
         //module right        
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_right.ready;                                currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_right.cupPresent;                           currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_right.currentPosition;                      currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_right.doorstate;                            currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_right.Disk.connection;                      currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_right.Disk.isProfileSet;                    currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_right.Disk.isTorqueOn;                      currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_right.Door.connection;                      currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_right.Door.isProfileSet;                    currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_right.Door.isTorqueOn;                      currentIndex++;
+//        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_right.ready;                                 currentIndex++;
+//        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_right.currentPosition;                       currentIndex++;        
+//        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_right.doorstate;                             currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_right.cupPresent;                            currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_right.Disk.connection;                       currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_right.Disk.isTorqueOn;                       currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_right.Disk.isProfileSet;                     currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_right.Disk.isPPGainSet;                      currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_right.Disk.isPDGainSet;                      currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_right.Disk.movingStatus;                     currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_right.Disk.presentPosition)&0xFF;           currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_right.Disk.presentPosition >> 8)&0xFF;      currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_right.Disk.presentPosition >>16)&0xFF;      currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_right.Disk.presentPosition >> 24)&0xFF;     currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_right.Door.connection;                       currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_right.Door.isTorqueOn;                       currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_right.Door.isProfileSet;                     currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_right.Door.movingStatus;                     currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_right.Door.presentPosition)&0xFF;           currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_right.Door.presentPosition >> 8)&0xFF;      currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_right.Door.presentPosition >>16)&0xFF;      currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_right.Door.presentPosition >> 24)&0xFF;     currentIndex++;
         
         //Ice valve (5 bytes)
         gv.lanData.msgToClient[currentIndex] = ICE_VALVE.motor.connection;                                      currentIndex++;
@@ -980,7 +1037,7 @@ void LAN2CAN_TaskFunction(void){
 
     if(BOARD_ID == 0){
         // Sensor & Door & Bar code
-        switch(drinkout_cnt%50){
+        switch(drinkout_cnt%90){
             case 0:
             {
                 if(DRINKOUT_INFO.module_left.Disk.command_state == MOTOR_IDLE){                   
@@ -1731,7 +1788,7 @@ void UART3Function(){
         
         if(BOARD_ID == 0){
             // Sensor & Door
-//            printf("%c", temp_ch);
+            printf("%c", temp_ch);
             
             switch(DrinkOut_state){
                 case 0:
@@ -1741,7 +1798,7 @@ void UART3Function(){
                     }
                     break;
                 case 1:
-                    if(temp_ch == 0xFF || (temp_ch == 0xFD)){
+                    if(temp_ch == 0xFF){
                         // match header  2
                         DrinkOut_state = 2;
                      }
@@ -1773,10 +1830,12 @@ void UART3Function(){
                     DrinkOut_buf[DrinkOut_index] = temp_ch;
                     DrinkOut_index++;
                     if((DrinkOut_index >= 3) && (DrinkOut_data_length == 0)){
-                        DrinkOut_data_length = (short)(DrinkOut_buf[2] << 8) | (short)(DrinkOut_buf[1]);
+                        DrinkOut_data_length = (unsigned short)((unsigned short)(DrinkOut_buf[1]) | ((unsigned short)(DrinkOut_buf[2]) << 8));
+//                        DrinkOut_data_length = (DrinkOut_buf[1]);
                     }
                     if((DrinkOut_data_length != 0) && (DrinkOut_index > DrinkOut_data_length)){
                         DrinkOut_state = 5;
+                        DrinkOut_data_length=0;
                     }
                 }
                     break;
@@ -1835,7 +1894,18 @@ void UART3Function(){
                                     DRINKOUT_INFO.module_left.currentPosition = 3;
                                     DRINKOUT_INFO.module_left.Disk.command_state = MOTOR_IDLE;
                                 }
-                                    break;     
+                                    break;  
+                                case MOTOR_WAIT_READ_MOVING_STATUS:{
+                                    DRINKOUT_INFO.module_left.Disk.movingStatus = DrinkOut_buf[5];
+                                    DRINKOUT_INFO.module_left.Disk.command_state = MOTOR_IDLE;
+                                }
+                                    break;  
+                                case MOTOR_WAIT_READ_POSITION:{
+                                    //(unsigned int)DrinkOut_buf[8]<<24) |
+                                    DRINKOUT_INFO.module_left.Disk.presentPosition = (unsigned int)(((unsigned int)DrinkOut_buf[8]<<24) | ((unsigned int)DrinkOut_buf[7]<<16) | ((unsigned int)DrinkOut_buf[6]<<8) | ((unsigned int)DrinkOut_buf[5]));
+                                    DRINKOUT_INFO.module_left.Disk.command_state = MOTOR_IDLE;
+                                }
+                                    break;      
                                 default:
                                     break;
                             }                           
@@ -1871,7 +1941,18 @@ void UART3Function(){
                                     DRINKOUT_INFO.module_left.doorstate = false;
                                     DRINKOUT_INFO.module_left.Door.command_state = MOTOR_IDLE;
                                 }
-                                    break;    
+                                    break;
+                                case MOTOR_WAIT_READ_MOVING_STATUS:{
+                                    DRINKOUT_INFO.module_left.Door.movingStatus = DrinkOut_buf[5];
+                                    DRINKOUT_INFO.module_left.Door.command_state = MOTOR_IDLE;
+                                }
+                                    break;
+                                case MOTOR_WAIT_READ_POSITION:{
+                                    //(unsigned int)DrinkOut_buf[8]<<24) |
+                                    DRINKOUT_INFO.module_left.Door.presentPosition = (unsigned int)(((unsigned int)DrinkOut_buf[8]<<24) | ((unsigned int)DrinkOut_buf[7]<<16) | ((unsigned int)DrinkOut_buf[6]<<8) | ((unsigned int)DrinkOut_buf[5]));
+                                    DRINKOUT_INFO.module_left.Door.command_state = MOTOR_IDLE;
+                                }
+                                    break;
                                 default:
                                     break;
                             }
@@ -1922,7 +2003,17 @@ void UART3Function(){
                                     DRINKOUT_INFO.module_middle_left.currentPosition = 3;
                                     DRINKOUT_INFO.module_middle_left.Disk.command_state = MOTOR_IDLE;
                                 }
-                                    break;     
+                                    break;
+                                case MOTOR_WAIT_READ_MOVING_STATUS:{
+                                    DRINKOUT_INFO.module_middle_left.Disk.movingStatus = DrinkOut_buf[5];
+                                    DRINKOUT_INFO.module_middle_left.Disk.command_state = MOTOR_IDLE;
+                                }
+                                    break;
+                                case MOTOR_WAIT_READ_POSITION:{
+                                    DRINKOUT_INFO.module_middle_left.Disk.presentPosition = (unsigned int)(((unsigned int)DrinkOut_buf[8]<<24) | ((unsigned int)DrinkOut_buf[7]<<16) | ((unsigned int)DrinkOut_buf[6]<<8) | ((unsigned int)DrinkOut_buf[5]));
+                                    DRINKOUT_INFO.module_middle_left.Disk.command_state = MOTOR_IDLE;
+                                }
+                                    break;
                                 default:
                                     break;
                             }                           
@@ -1958,7 +2049,17 @@ void UART3Function(){
                                     DRINKOUT_INFO.module_middle_left.doorstate = false;
                                     DRINKOUT_INFO.module_middle_left.Door.command_state = MOTOR_IDLE;
                                 }
-                                    break;    
+                                    break;
+                                case MOTOR_WAIT_READ_MOVING_STATUS:{
+                                    DRINKOUT_INFO.module_middle_left.Door.movingStatus = DrinkOut_buf[5];
+                                    DRINKOUT_INFO.module_middle_left.Door.command_state = MOTOR_IDLE;
+                                }
+                                    break;
+                                case MOTOR_WAIT_READ_POSITION:{
+                                    DRINKOUT_INFO.module_middle_left.Door.presentPosition = (unsigned int)(((unsigned int)DrinkOut_buf[8]<<24) | ((unsigned int)DrinkOut_buf[7]<<16) | ((unsigned int)DrinkOut_buf[6]<<8) | ((unsigned int)DrinkOut_buf[5]));
+                                    DRINKOUT_INFO.module_middle_left.Door.command_state = MOTOR_IDLE;
+                                }
+                                    break;
                                 default:
                                     break;
                             }
@@ -2262,55 +2363,64 @@ void SetMotorCommandState(unsigned char id, unsigned char command){
     switch(id){
         case 1:{
 //            while(DRINKOUT_INFO.module_left.Disk.command_state != MOTOR_IDLE){}
-            if(command == 1) {
-                DRINKOUT_INFO.module_left.Disk.command_state = MOTOR_WAIT_GO_POS1;}
-            else if(command == 2) {
-                DRINKOUT_INFO.module_left.Disk.command_state = MOTOR_WAIT_GO_POS2;}
-            else if(command == 3) {
-                DRINKOUT_INFO.module_left.Disk.command_state = MOTOR_WAIT_GO_POS3;}
+            if(command == 1) {      DRINKOUT_INFO.module_left.Disk.command_state = MOTOR_WAIT_GO_POS1;}
+            else if(command == 2) { DRINKOUT_INFO.module_left.Disk.command_state = MOTOR_WAIT_GO_POS2;}
+            else if(command == 3) { DRINKOUT_INFO.module_left.Disk.command_state = MOTOR_WAIT_GO_POS3;}
+            else if(command == 6) { DRINKOUT_INFO.module_left.Disk.command_state = MOTOR_WAIT_READ_MOVING_STATUS;}
+            else if(command == 7) { DRINKOUT_INFO.module_left.Disk.command_state = MOTOR_WAIT_READ_POSITION;}
         }
         break;
         case 2:{
 //            while(DRINKOUT_INFO.module_left.Door.command_state != MOTOR_IDLE){}
-            if(command == 1) { DRINKOUT_INFO.module_left.Door.command_state = MOTOR_WAIT_GO_POS1;}
-            else if(command == 2) { DRINKOUT_INFO.module_left.Door.command_state = MOTOR_WAIT_GO_POS2;}
-            else if(command == 3) { DRINKOUT_INFO.module_left.Door.command_state = MOTOR_WAIT_GO_POS3;}
+            if(command == 4) {      DRINKOUT_INFO.module_left.Door.command_state = MOTOR_WAIT_DOOR_OPEN;}
+            else if(command == 5) { DRINKOUT_INFO.module_left.Door.command_state = MOTOR_WAIT_DOOR_CLOSE;}
+            else if(command == 6) { DRINKOUT_INFO.module_left.Door.command_state = MOTOR_WAIT_READ_MOVING_STATUS;}
+            else if(command == 7) { DRINKOUT_INFO.module_left.Door.command_state = MOTOR_WAIT_READ_POSITION;}
         }
         break;
         case 3:{
-            if(command == 1) { DRINKOUT_INFO.module_middle_left.Disk.command_state = MOTOR_WAIT_GO_POS1;}
+            if(command == 1) {      DRINKOUT_INFO.module_middle_left.Disk.command_state = MOTOR_WAIT_GO_POS1;}
             else if(command == 2) { DRINKOUT_INFO.module_middle_left.Disk.command_state = MOTOR_WAIT_GO_POS2;}
             else if(command == 3) { DRINKOUT_INFO.module_middle_left.Disk.command_state = MOTOR_WAIT_GO_POS3;}
+            else if(command == 6) { DRINKOUT_INFO.module_middle_left.Disk.command_state = MOTOR_WAIT_READ_MOVING_STATUS;}
+            else if(command == 7) { DRINKOUT_INFO.module_middle_left.Disk.command_state = MOTOR_WAIT_READ_POSITION;}
         }
         break;
         case 4:{
-            if(command == 1) { DRINKOUT_INFO.module_middle_left.Door.command_state = MOTOR_WAIT_GO_POS1;}
-            else if(command == 2) { DRINKOUT_INFO.module_middle_left.Door.command_state = MOTOR_WAIT_GO_POS2;}
-            else if(command == 3) { DRINKOUT_INFO.module_middle_left.Door.command_state = MOTOR_WAIT_GO_POS3;}
+            if(command == 4) {      DRINKOUT_INFO.module_middle_left.Door.command_state = MOTOR_WAIT_DOOR_OPEN;}
+            else if(command == 5) { DRINKOUT_INFO.module_middle_left.Door.command_state = MOTOR_WAIT_DOOR_CLOSE;}
+            else if(command == 6) { DRINKOUT_INFO.module_middle_left.Door.command_state = MOTOR_WAIT_READ_MOVING_STATUS;}
+            else if(command == 7) { DRINKOUT_INFO.module_middle_left.Door.command_state = MOTOR_WAIT_READ_POSITION;}
         }
         break;
         case 5:{
-            if(command == 1) { DRINKOUT_INFO.module_middle_right.Disk.command_state = MOTOR_WAIT_GO_POS1;}
+            if(command == 1) {      DRINKOUT_INFO.module_middle_right.Disk.command_state = MOTOR_WAIT_GO_POS1;}
             else if(command == 2) { DRINKOUT_INFO.module_middle_right.Disk.command_state = MOTOR_WAIT_GO_POS2;}
             else if(command == 3) { DRINKOUT_INFO.module_middle_right.Disk.command_state = MOTOR_WAIT_GO_POS3;}
+            else if(command == 6) { DRINKOUT_INFO.module_middle_right.Disk.command_state = MOTOR_WAIT_READ_MOVING_STATUS;}
+            else if(command == 7) { DRINKOUT_INFO.module_middle_right.Disk.command_state = MOTOR_WAIT_READ_POSITION;}
         }
         break;
         case 6:{
-            if(command == 1) { DRINKOUT_INFO.module_middle_right.Door.command_state = MOTOR_WAIT_GO_POS1;}
-            else if(command == 2) { DRINKOUT_INFO.module_middle_right.Door.command_state = MOTOR_WAIT_GO_POS2;}
-            else if(command == 3) { DRINKOUT_INFO.module_middle_right.Door.command_state = MOTOR_WAIT_GO_POS3;}
+            if(command == 4) {      DRINKOUT_INFO.module_middle_right.Door.command_state = MOTOR_WAIT_DOOR_OPEN;}
+            else if(command == 5) { DRINKOUT_INFO.module_middle_right.Door.command_state = MOTOR_WAIT_DOOR_CLOSE;}
+            else if(command == 6) { DRINKOUT_INFO.module_middle_right.Door.command_state = MOTOR_WAIT_READ_MOVING_STATUS;}
+            else if(command == 7) { DRINKOUT_INFO.module_middle_right.Door.command_state = MOTOR_WAIT_READ_POSITION;}
         }
         break;
         case 7:{
-            if(command == 1) { DRINKOUT_INFO.module_right.Disk.command_state = MOTOR_WAIT_GO_POS1;}
+            if(command == 1) {      DRINKOUT_INFO.module_right.Disk.command_state = MOTOR_WAIT_GO_POS1;}
             else if(command == 2) { DRINKOUT_INFO.module_right.Disk.command_state = MOTOR_WAIT_GO_POS2;}
             else if(command == 3) { DRINKOUT_INFO.module_right.Disk.command_state = MOTOR_WAIT_GO_POS3;}
+            else if(command == 6) { DRINKOUT_INFO.module_right.Disk.command_state = MOTOR_WAIT_READ_MOVING_STATUS;}
+            else if(command == 7) { DRINKOUT_INFO.module_right.Disk.command_state = MOTOR_WAIT_READ_POSITION;}
         }
         break;
         case 8:{
-            if(command == 1) { DRINKOUT_INFO.module_right.Door.command_state = MOTOR_WAIT_GO_POS1;}
-            else if(command == 2) { DRINKOUT_INFO.module_right.Door.command_state = MOTOR_WAIT_GO_POS2;}
-            else if(command == 3) { DRINKOUT_INFO.module_right.Door.command_state = MOTOR_WAIT_GO_POS3;}
+            if(command == 4) {      DRINKOUT_INFO.module_right.Door.command_state = MOTOR_WAIT_DOOR_OPEN;}
+            else if(command == 5) { DRINKOUT_INFO.module_right.Door.command_state = MOTOR_WAIT_DOOR_CLOSE;}
+            else if(command == 6) { DRINKOUT_INFO.module_right.Door.command_state = MOTOR_WAIT_READ_MOVING_STATUS;}
+            else if(command == 7) { DRINKOUT_INFO.module_right.Door.command_state = MOTOR_WAIT_READ_POSITION;}
         }
         break;
     }
