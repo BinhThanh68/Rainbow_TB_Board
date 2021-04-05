@@ -30,11 +30,12 @@ void DRINKOUT_SetPPGain(unsigned char ID);
 void DRINKOUT_SetPDGain(unsigned char ID);
 void DRINKOUT_TurnTorque(unsigned char ID, unsigned char ON_OFF);
 //goal_position 1~3
-void DRINKOUT_Go(unsigned char ID, short goal_pos);
+void DRINKOUT_Go(unsigned char ID, unsigned char goal_pos_index);
+void DRINKOUT_Go_by_value(unsigned char ID, int goal_pos);
 void DRINKOUT_CheckMovingStatus(unsigned char ID);
 void DRINKOUT_ReadPosition(unsigned char ID);
 long DRINK_GetWeight();
-
+unsigned short update_crc(unsigned short crc_accum, unsigned char *data_blk_ptr, unsigned short data_blk_size);
 
 void ICE_Valve_Set_Lock(unsigned char lock);
 void ICE_Valve_Check_Connection();
