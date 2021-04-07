@@ -255,7 +255,13 @@ void LAN2CAN_Tasks(void) {
     
 
     //Remote controller operation
-    
+    //cleaning button pushed
+    if(!PORTBbits.RB3){
+        REMOTE_CONTROLLER.startCleaning = 1;
+    }
+    if(!PORTBbits.RB5){
+        REMOTE_CONTROLLER.stopCleaning = 1;
+    }
     
     
     // Task
