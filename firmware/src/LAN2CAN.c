@@ -586,6 +586,8 @@ int LAN2CAN_LANDataParsing(void) {
                             ICE_Valve_Set_Lock(para1);
                             break;
                     }
+                }else if(target==3){
+                    RemoteController_LED_Operation(para1, para2);
                 }
             }
             break;
@@ -778,7 +780,7 @@ int LAN2CAN_CANSendToMainController(void) {
         // Sensor & Door & Bar code
         gv.lanData.msgToClient[currentIndex] = 0x24;        currentIndex++;
         // Calculate data size
-        dataSize = 4 + 6 + 76 + 5 + BARCODE_SIZE;
+        dataSize = 4 + 6 + 76 + 5 + 2 + BARCODE_SIZE;
         gv.lanData.msgToClient[currentIndex] = (uint8_t) (dataSize);   currentIndex++;
         gv.lanData.msgToClient[currentIndex] = (uint8_t) (dataSize >> 8);  currentIndex++;
         // From slave   
@@ -904,6 +906,9 @@ int LAN2CAN_CANSendToMainController(void) {
         gv.lanData.msgToClient[currentIndex] = ICE_VALVE.lock_state;                                            currentIndex++;
         gv.lanData.msgToClient[currentIndex] = ICE_VALVE.sensor;                                                currentIndex++;
         
+        //remote controller data (2 bytes))
+        gv.lanData.msgToClient[currentIndex] = REMOTE_CONTROLLER.startCleaning;                                 currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = REMOTE_CONTROLLER.stopCleaning;                                  currentIndex++;
          // Bar code Data (BARCODE_SIZE bytes)
         int idx = 0;
         for(idx=0; idx<BARCODE_SIZE; idx++){

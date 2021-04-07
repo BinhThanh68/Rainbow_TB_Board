@@ -42,4 +42,7 @@ void ICE_Valve_Check_Connection();
 void ICE_Valve_Set_Profile();
 void ICE_Valve_Set_Torque();
 
+
+void RemoteController_LED_Operation(unsigned char led, unsigned char state);
+
 #endif
