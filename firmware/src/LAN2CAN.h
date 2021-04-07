@@ -153,6 +153,14 @@ typedef struct
     unsigned char sensor;
 } ST_ICE_VALVE_DATA;
 
+
+typedef struct
+{
+    unsigned char startCleaning;
+    unsigned char stopCleaning;
+} ST_ROMOTE_CONTROLER_DATA;
+
+
 // Client socket definition
 typedef struct
 {

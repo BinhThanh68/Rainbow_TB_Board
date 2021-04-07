@@ -27,6 +27,7 @@ ST_ICE_DATA ICE_INFO;
 ST_CUP_DATA CUP_INFO;
 ST_DRINKOUT_DATA DRINKOUT_INFO;
 ST_ICE_VALVE_DATA ICE_VALVE;
+ST_ROMOTE_CONTROLER_DATA REMOTE_CONTROLLER;
 
 unsigned char BARCODE_DATA[BARCODE_SIZE] = {0,};
 int BARCODE_LOCK = 0;
@@ -91,11 +92,13 @@ void LAN2CAN_Initialize(void) {
        LOADCELL_INFO.focusMode = 0;
        LOADCELL_INFO.start_making = 0;
        LOADCELL_INFO.threshold = 160;
+       INIT_UART_3(57600, 1, 0);
     }else if(BOARD_ID == 1){
         // Ice & Cup  
+        INIT_UART_3(9600, 1, 0);
     }
     INIT_UART_2(9600, 1, 0);
-    INIT_UART_3(9600, 1, 0);
+//    INIT_UART_3(9600, 1, 0);
     INIT_UART_4(9600, 1, 0);
 
 }
@@ -185,7 +188,7 @@ void LAN2CAN_Tasks(void) {
 //                PORTBbits.RB5 = 1;
 //            }
 //        }
-            
+            //Loadcell operation
             //old algorithm
         if(LOADCELL_INFO.isEnabled){
             if(LOADCELL_INFO.focusMode == 0){
@@ -251,6 +254,9 @@ void LAN2CAN_Tasks(void) {
     }
     
 
+    //Remote controller operation
+    
+    
     
     // Task
     LAN2CAN_TaskFunction(); 
@@ -1851,8 +1857,7 @@ void UART3Function(){
         
         if(BOARD_ID == 0){
             // Sensor & Door
-            printf("%c", temp_ch);
-            
+//            printf("%c", temp_ch);
             switch(DrinkOut_state){
                 case 0:
                     if(temp_ch == 0xFF){
@@ -2379,6 +2384,7 @@ void UART3Function(){
                 default:
                     break;            
             }
+            
              
         }else if(BOARD_ID == 1){
             // Ice & Cup
@@ -2476,6 +2482,532 @@ void UART4Function(){
         if(BOARD_ID == 0){       
             
             printf("%c", temp_ch);
+//            switch(DrinkOut_state){
+//                case 0:
+//                    if(temp_ch == 0xFF){
+//                        // match header 1
+//                        DrinkOut_state = 1;
+//                    }
+//                    break;
+//                case 1:
+//                    if(temp_ch == 0xFF){
+//                        // match header  2
+//                        DrinkOut_state = 2;
+//                     }
+//                    else{
+//                        DrinkOut_state = 0;
+//                    }
+//                    break;
+//                case 2:
+//                    if(temp_ch == 0xFD || (temp_ch == 0x00)){
+//                        // match header 3
+//                        DrinkOut_state = 3;
+//                    }
+//                    else{
+//                        DrinkOut_state = 0;
+//                    }
+//                    break;
+//                case 3:
+//                    if((temp_ch == 0x00) || (temp_ch == 0xFD)){
+//                        // match header 4
+//                        DrinkOut_state = 4;
+//                        DrinkOut_index = 0;
+//                    }
+//                    else{
+//                        DrinkOut_state = 0;
+//                    }
+//                    break;    
+//                case 4:
+//                {
+//                    DrinkOut_buf[DrinkOut_index] = temp_ch;
+//                    DrinkOut_index++;
+//                    if((DrinkOut_index >= 3) && (DrinkOut_data_length == 0)){
+//                        DrinkOut_data_length = (unsigned short)((unsigned short)(DrinkOut_buf[1]) | ((unsigned short)(DrinkOut_buf[2]) << 8));
+////                        DrinkOut_data_length = (DrinkOut_buf[1]);
+//                    }
+//                    if((DrinkOut_data_length != 0) && (DrinkOut_index > DrinkOut_data_length)){
+//                        DrinkOut_state = 5;
+//                        DrinkOut_data_length=0;
+//                    }
+//                }
+//                    break;
+//                case 5:
+//                {
+//                    if((DrinkOut_buf[3]!=0x55) || (DrinkOut_buf[4] != 0)){
+//                        //error occurred
+//                        DrinkOut_state = 0;
+//                        break;
+//                    }
+//                    switch(DrinkOut_buf[0]){
+//                        //which motor is data from
+//                        case MODULE_LEFT_DISK:
+//                            switch(DRINKOUT_INFO.module_left.Disk.command_state){
+//                                case MOTOR_WAIT_PING:{
+//                                    DRINKOUT_INFO.module_left.Disk.connection = true;
+//                                    DRINKOUT_INFO.module_left.Disk.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                case MOTOR_WAIT_SET_PROFILE:{
+//                                    DRINKOUT_INFO.module_left.Disk.isProfileSet = true;
+//                                    DRINKOUT_INFO.module_left.Disk.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;      
+//                                case MOTOR_WAIT_SET_PROFILE_ACELE:{
+//                                    DRINKOUT_INFO.module_left.Disk.isProfileAceleSet = true;
+//                                    DRINKOUT_INFO.module_left.Disk.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;            
+//                                case MOTOR_WAIT_SET_PP_GAIN:{
+//                                    DRINKOUT_INFO.module_left.Disk.isPPGainSet = true;
+//                                    DRINKOUT_INFO.module_left.Disk.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;    
+//                                case MOTOR_WAIT_SET_PD_GAIN:{
+//                                    DRINKOUT_INFO.module_left.Disk.isPDGainSet = true;
+//                                    DRINKOUT_INFO.module_left.Disk.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                case MOTOR_WAIT_ENABLE_TORQUE:{
+//                                    DRINKOUT_INFO.module_left.Disk.isTorqueOn = true;
+//                                    DRINKOUT_INFO.module_left.Disk.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                case MOTOR_WAIT_GO_POS1:{
+//                                    DRINKOUT_INFO.module_left.currentPosition = 1;
+//                                    DRINKOUT_INFO.module_left.Disk.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                case MOTOR_WAIT_GO_POS2:{
+//                                    DRINKOUT_INFO.module_left.currentPosition = 2;
+//                                    DRINKOUT_INFO.module_left.Disk.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                case MOTOR_WAIT_GO_POS3:{
+//                                    DRINKOUT_INFO.module_left.currentPosition = 3;
+//                                    DRINKOUT_INFO.module_left.Disk.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;  
+//                                case MOTOR_WAIT_READ_MOVING_STATUS:{
+//                                    DRINKOUT_INFO.module_left.Disk.movingStatus = DrinkOut_buf[5];
+//                                    DRINKOUT_INFO.module_left.Disk.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;  
+//                                case MOTOR_WAIT_READ_POSITION:{
+//                                    //(unsigned int)DrinkOut_buf[8]<<24) |
+//                                    DRINKOUT_INFO.module_left.Disk.presentPosition = (unsigned int)(((unsigned int)DrinkOut_buf[8]<<24) | ((unsigned int)DrinkOut_buf[7]<<16) | ((unsigned int)DrinkOut_buf[6]<<8) | ((unsigned int)DrinkOut_buf[5]));
+//                                    DRINKOUT_INFO.module_left.Disk.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;      
+//                                default:
+//                                    break;
+//                            }                           
+//                            break;
+//                        case MODULE_LEFT_DOOR:
+//                            switch(DRINKOUT_INFO.module_left.Door.command_state){
+//                                case MOTOR_WAIT_PING:
+//                                {
+//                                    DRINKOUT_INFO.module_left.Door.connection = true;
+//                                    DRINKOUT_INFO.module_left.Door.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                case MOTOR_WAIT_SET_PROFILE:
+//                                {
+//                                    DRINKOUT_INFO.module_left.Door.isProfileSet = true;
+//                                    DRINKOUT_INFO.module_left.Door.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;   
+//                                case MOTOR_WAIT_ENABLE_TORQUE:
+//                                {
+//                                    DRINKOUT_INFO.module_left.Door.isTorqueOn = true;
+//                                    DRINKOUT_INFO.module_left.Door.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                case MOTOR_WAIT_DOOR_OPEN:
+//                                {
+//                                    DRINKOUT_INFO.module_left.doorstate = true;
+//                                    DRINKOUT_INFO.module_left.Door.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                case MOTOR_WAIT_DOOR_CLOSE:
+//                                {
+//                                    DRINKOUT_INFO.module_left.doorstate = false;
+//                                    DRINKOUT_INFO.module_left.Door.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                case MOTOR_WAIT_READ_MOVING_STATUS:{
+//                                    DRINKOUT_INFO.module_left.Door.movingStatus = DrinkOut_buf[5];
+//                                    DRINKOUT_INFO.module_left.Door.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                case MOTOR_WAIT_READ_POSITION:{
+//                                    //(unsigned int)DrinkOut_buf[8]<<24) |
+//                                    DRINKOUT_INFO.module_left.Door.presentPosition = (unsigned int)(((unsigned int)DrinkOut_buf[8]<<24) | ((unsigned int)DrinkOut_buf[7]<<16) | ((unsigned int)DrinkOut_buf[6]<<8) | ((unsigned int)DrinkOut_buf[5]));
+//                                    DRINKOUT_INFO.module_left.Door.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                default:
+//                                    break;
+//                            }
+//                            break;
+//                        case MODULE_MIDDLE_LEFT_DISK:
+//                            switch(DRINKOUT_INFO.module_middle_left.Disk.command_state){
+//                                case MOTOR_WAIT_PING:{
+//                                    DRINKOUT_INFO.module_middle_left.Disk.connection = true;
+//                                    DRINKOUT_INFO.module_middle_left.Disk.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                case MOTOR_WAIT_SET_PROFILE:{
+//                                    DRINKOUT_INFO.module_middle_left.Disk.isProfileSet = true;
+//                                    DRINKOUT_INFO.module_middle_left.Disk.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;      
+//                                case MOTOR_WAIT_SET_PROFILE_ACELE:{
+//                                    DRINKOUT_INFO.module_middle_left.Disk.isProfileAceleSet = true;
+//                                    DRINKOUT_INFO.module_middle_left.Disk.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;            
+//                                case MOTOR_WAIT_SET_PP_GAIN:{
+//                                    DRINKOUT_INFO.module_middle_left.Disk.isPPGainSet = true;
+//                                    DRINKOUT_INFO.module_middle_left.Disk.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;    
+//                                case MOTOR_WAIT_SET_PD_GAIN:{
+//                                    DRINKOUT_INFO.module_middle_left.Disk.isPDGainSet = true;
+//                                    DRINKOUT_INFO.module_middle_left.Disk.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                case MOTOR_WAIT_ENABLE_TORQUE:{
+//                                    DRINKOUT_INFO.module_middle_left.Disk.isTorqueOn = true;
+//                                    DRINKOUT_INFO.module_middle_left.Disk.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                case MOTOR_WAIT_GO_POS1:{
+//                                    DRINKOUT_INFO.module_middle_left.currentPosition = 1;
+//                                    DRINKOUT_INFO.module_middle_left.Disk.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                case MOTOR_WAIT_GO_POS2:{
+//                                    DRINKOUT_INFO.module_middle_left.currentPosition = 2;
+//                                    DRINKOUT_INFO.module_middle_left.Disk.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                case MOTOR_WAIT_GO_POS3:{
+//                                    DRINKOUT_INFO.module_middle_left.currentPosition = 3;
+//                                    DRINKOUT_INFO.module_middle_left.Disk.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                case MOTOR_WAIT_READ_MOVING_STATUS:{
+//                                    DRINKOUT_INFO.module_middle_left.Disk.movingStatus = DrinkOut_buf[5];
+//                                    DRINKOUT_INFO.module_middle_left.Disk.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                case MOTOR_WAIT_READ_POSITION:{
+//                                    DRINKOUT_INFO.module_middle_left.Disk.presentPosition = (unsigned int)(((unsigned int)DrinkOut_buf[8]<<24) | ((unsigned int)DrinkOut_buf[7]<<16) | ((unsigned int)DrinkOut_buf[6]<<8) | ((unsigned int)DrinkOut_buf[5]));
+//                                    DRINKOUT_INFO.module_middle_left.Disk.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                default:
+//                                    break;
+//                            }                           
+//                            break;
+//                        case MODULE_MIDDLE_LEFT_DOOR:
+//                            switch(DRINKOUT_INFO.module_middle_left.Door.command_state){
+//                                case MOTOR_WAIT_PING:
+//                                {
+//                                    DRINKOUT_INFO.module_middle_left.Door.connection = true;
+//                                    DRINKOUT_INFO.module_middle_left.Door.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                case MOTOR_WAIT_SET_PROFILE:
+//                                {
+//                                    DRINKOUT_INFO.module_middle_left.Door.isProfileSet = true;
+//                                    DRINKOUT_INFO.module_middle_left.Door.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;   
+//                                case MOTOR_WAIT_ENABLE_TORQUE:
+//                                {
+//                                    DRINKOUT_INFO.module_middle_left.Door.isTorqueOn = true;
+//                                    DRINKOUT_INFO.module_middle_left.Door.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                case MOTOR_WAIT_DOOR_OPEN:
+//                                {
+//                                    DRINKOUT_INFO.module_middle_left.doorstate = true;
+//                                    DRINKOUT_INFO.module_middle_left.Door.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                case MOTOR_WAIT_DOOR_CLOSE:
+//                                {
+//                                    DRINKOUT_INFO.module_middle_left.doorstate = false;
+//                                    DRINKOUT_INFO.module_middle_left.Door.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                case MOTOR_WAIT_READ_MOVING_STATUS:{
+//                                    DRINKOUT_INFO.module_middle_left.Door.movingStatus = DrinkOut_buf[5];
+//                                    DRINKOUT_INFO.module_middle_left.Door.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                case MOTOR_WAIT_READ_POSITION:{
+//                                    DRINKOUT_INFO.module_middle_left.Door.presentPosition = (unsigned int)(((unsigned int)DrinkOut_buf[8]<<24) | ((unsigned int)DrinkOut_buf[7]<<16) | ((unsigned int)DrinkOut_buf[6]<<8) | ((unsigned int)DrinkOut_buf[5]));
+//                                    DRINKOUT_INFO.module_middle_left.Door.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                default:
+//                                    break;
+//                            }
+//                            break;
+//                        case MODULE_MIDDLE_RIGHT_DISK:
+//                            switch(DRINKOUT_INFO.module_middle_right.Disk.command_state){
+//                                case MOTOR_WAIT_PING:{
+//                                    DRINKOUT_INFO.module_middle_right.Disk.connection = true;
+//                                    DRINKOUT_INFO.module_middle_right.Disk.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                case MOTOR_WAIT_SET_PROFILE:{
+//                                    DRINKOUT_INFO.module_middle_right.Disk.isProfileSet = true;
+//                                    DRINKOUT_INFO.module_middle_right.Disk.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;      
+//                                case MOTOR_WAIT_SET_PROFILE_ACELE:{
+//                                    DRINKOUT_INFO.module_middle_right.Disk.isProfileAceleSet = true;
+//                                    DRINKOUT_INFO.module_middle_right.Disk.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;            
+//                                case MOTOR_WAIT_SET_PP_GAIN:{
+//                                    DRINKOUT_INFO.module_middle_right.Disk.isPPGainSet = true;
+//                                    DRINKOUT_INFO.module_middle_right.Disk.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;    
+//                                case MOTOR_WAIT_SET_PD_GAIN:{
+//                                    DRINKOUT_INFO.module_middle_right.Disk.isPDGainSet = true;
+//                                    DRINKOUT_INFO.module_middle_right.Disk.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                case MOTOR_WAIT_ENABLE_TORQUE:{
+//                                    DRINKOUT_INFO.module_middle_right.Disk.isTorqueOn = true;
+//                                    DRINKOUT_INFO.module_middle_right.Disk.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                case MOTOR_WAIT_GO_POS1:{
+//                                    DRINKOUT_INFO.module_middle_right.currentPosition = 1;
+//                                    DRINKOUT_INFO.module_middle_right.Disk.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                case MOTOR_WAIT_GO_POS2:{
+//                                    DRINKOUT_INFO.module_middle_right.currentPosition = 2;
+//                                    DRINKOUT_INFO.module_middle_right.Disk.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                case MOTOR_WAIT_GO_POS3:{
+//                                    DRINKOUT_INFO.module_middle_right.currentPosition = 3;
+//                                    DRINKOUT_INFO.module_middle_right.Disk.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;  
+//                                case MOTOR_WAIT_READ_MOVING_STATUS:{
+//                                    DRINKOUT_INFO.module_middle_right.Disk.movingStatus = DrinkOut_buf[5];
+//                                    DRINKOUT_INFO.module_middle_right.Disk.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;  
+//                                case MOTOR_WAIT_READ_POSITION:{
+//                                    //(unsigned int)DrinkOut_buf[8]<<24) |
+//                                    DRINKOUT_INFO.module_middle_right.Disk.presentPosition = (unsigned int)(((unsigned int)DrinkOut_buf[8]<<24) | ((unsigned int)DrinkOut_buf[7]<<16) | ((unsigned int)DrinkOut_buf[6]<<8) | ((unsigned int)DrinkOut_buf[5]));
+//                                    DRINKOUT_INFO.module_middle_right.Disk.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;      
+//                                default:
+//                                    break;
+//                            }    
+//                            break;
+//                        case MODULE_MIDDLE_RIGHT_DOOR:
+//                            switch(DRINKOUT_INFO.module_middle_right.Door.command_state){
+//                                case MOTOR_WAIT_PING:
+//                                {
+//                                    DRINKOUT_INFO.module_middle_right.Door.connection = true;
+//                                    DRINKOUT_INFO.module_middle_right.Door.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                case MOTOR_WAIT_SET_PROFILE:
+//                                {
+//                                    DRINKOUT_INFO.module_middle_right.Door.isProfileSet = true;
+//                                    DRINKOUT_INFO.module_middle_right.Door.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;   
+//                                case MOTOR_WAIT_ENABLE_TORQUE:
+//                                {
+//                                    DRINKOUT_INFO.module_middle_right.Door.isTorqueOn = true;
+//                                    DRINKOUT_INFO.module_middle_right.Door.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                case MOTOR_WAIT_DOOR_OPEN:
+//                                {
+//                                    DRINKOUT_INFO.module_middle_right.doorstate = true;
+//                                    DRINKOUT_INFO.module_middle_right.Door.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                case MOTOR_WAIT_DOOR_CLOSE:
+//                                {
+//                                    DRINKOUT_INFO.module_middle_right.doorstate = false;
+//                                    DRINKOUT_INFO.module_middle_right.Door.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                case MOTOR_WAIT_READ_MOVING_STATUS:{
+//                                    DRINKOUT_INFO.module_middle_right.Door.movingStatus = DrinkOut_buf[5];
+//                                    DRINKOUT_INFO.module_middle_right.Door.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                case MOTOR_WAIT_READ_POSITION:{
+//                                    //(unsigned int)DrinkOut_buf[8]<<24) |
+//                                    DRINKOUT_INFO.module_middle_right.Door.presentPosition = (unsigned int)(((unsigned int)DrinkOut_buf[8]<<24) | ((unsigned int)DrinkOut_buf[7]<<16) | ((unsigned int)DrinkOut_buf[6]<<8) | ((unsigned int)DrinkOut_buf[5]));
+//                                    DRINKOUT_INFO.module_middle_right.Door.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                default:
+//                                    break;
+//                            }
+//                            break;
+//                        case MODULE_RIGHT_DISK:
+//                            switch(DRINKOUT_INFO.module_right.Disk.command_state){
+//                                case MOTOR_WAIT_PING:{
+//                                    DRINKOUT_INFO.module_right.Disk.connection = true;
+//                                    DRINKOUT_INFO.module_right.Disk.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                case MOTOR_WAIT_SET_PROFILE:{
+//                                    DRINKOUT_INFO.module_right.Disk.isProfileSet = true;
+//                                    DRINKOUT_INFO.module_right.Disk.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;      
+//                                case MOTOR_WAIT_SET_PROFILE_ACELE:{
+//                                    DRINKOUT_INFO.module_right.Disk.isProfileAceleSet = true;
+//                                    DRINKOUT_INFO.module_right.Disk.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;            
+//                                case MOTOR_WAIT_SET_PP_GAIN:{
+//                                    DRINKOUT_INFO.module_right.Disk.isPPGainSet = true;
+//                                    DRINKOUT_INFO.module_right.Disk.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;    
+//                                case MOTOR_WAIT_SET_PD_GAIN:{
+//                                    DRINKOUT_INFO.module_right.Disk.isPDGainSet = true;
+//                                    DRINKOUT_INFO.module_right.Disk.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                case MOTOR_WAIT_ENABLE_TORQUE:{
+//                                    DRINKOUT_INFO.module_right.Disk.isTorqueOn = true;
+//                                    DRINKOUT_INFO.module_right.Disk.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                case MOTOR_WAIT_GO_POS1:{
+//                                    DRINKOUT_INFO.module_right.currentPosition = 1;
+//                                    DRINKOUT_INFO.module_right.Disk.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                case MOTOR_WAIT_GO_POS2:{
+//                                    DRINKOUT_INFO.module_right.currentPosition = 2;
+//                                    DRINKOUT_INFO.module_right.Disk.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                case MOTOR_WAIT_GO_POS3:{
+//                                    DRINKOUT_INFO.module_right.currentPosition = 3;
+//                                    DRINKOUT_INFO.module_right.Disk.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;  
+//                                case MOTOR_WAIT_READ_MOVING_STATUS:{
+//                                    DRINKOUT_INFO.module_right.Disk.movingStatus = DrinkOut_buf[5];
+//                                    DRINKOUT_INFO.module_right.Disk.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;  
+//                                case MOTOR_WAIT_READ_POSITION:{
+//                                    //(unsigned int)DrinkOut_buf[8]<<24) |
+//                                    DRINKOUT_INFO.module_right.Disk.presentPosition = (unsigned int)(((unsigned int)DrinkOut_buf[8]<<24) | ((unsigned int)DrinkOut_buf[7]<<16) | ((unsigned int)DrinkOut_buf[6]<<8) | ((unsigned int)DrinkOut_buf[5]));
+//                                    DRINKOUT_INFO.module_right.Disk.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;      
+//                                default:
+//                                    break;
+//                            }                        
+//                            break;    
+//                        case MODULE_RIGHT_DOOR:
+//                            switch(DRINKOUT_INFO.module_right.Door.command_state){
+//                                case MOTOR_WAIT_PING:
+//                                {
+//                                    DRINKOUT_INFO.module_right.Door.connection = true;
+//                                    DRINKOUT_INFO.module_right.Door.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                case MOTOR_WAIT_SET_PROFILE:
+//                                {
+//                                    DRINKOUT_INFO.module_right.Door.isProfileSet = true;
+//                                    DRINKOUT_INFO.module_right.Door.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;   
+//                                case MOTOR_WAIT_ENABLE_TORQUE:
+//                                {
+//                                    DRINKOUT_INFO.module_right.Door.isTorqueOn = true;
+//                                    DRINKOUT_INFO.module_right.Door.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                case MOTOR_WAIT_DOOR_OPEN:
+//                                {
+//                                    DRINKOUT_INFO.module_right.doorstate = true;
+//                                    DRINKOUT_INFO.module_right.Door.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                case MOTOR_WAIT_DOOR_CLOSE:
+//                                {
+//                                    DRINKOUT_INFO.module_right.doorstate = false;
+//                                    DRINKOUT_INFO.module_right.Door.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                case MOTOR_WAIT_READ_MOVING_STATUS:{
+//                                    DRINKOUT_INFO.module_right.Door.movingStatus = DrinkOut_buf[5];
+//                                    DRINKOUT_INFO.module_right.Door.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                case MOTOR_WAIT_READ_POSITION:{
+//                                    //(unsigned int)DrinkOut_buf[8]<<24) |
+//                                    DRINKOUT_INFO.module_right.Door.presentPosition = (unsigned int)(((unsigned int)DrinkOut_buf[8]<<24) | ((unsigned int)DrinkOut_buf[7]<<16) | ((unsigned int)DrinkOut_buf[6]<<8) | ((unsigned int)DrinkOut_buf[5]));
+//                                    DRINKOUT_INFO.module_right.Door.command_state = MOTOR_IDLE;
+//                                }
+//                                    break;
+//                                default:
+//                                    break;
+//                            }
+//                            break;
+//                        case 9:{
+//                            if(ICE_VALVE.motor.command_state == MOTOR_WAIT_PING){
+//                                ICE_VALVE.motor.connection = true;
+//                                ICE_VALVE.motor.command_state = MOTOR_IDLE;
+//                            }
+//                            else if(ICE_VALVE.motor.command_state == MOTOR_WAIT_SET_PROFILE){
+//                                ICE_VALVE.motor.isProfileSet = true;
+//                                ICE_VALVE.motor.command_state = MOTOR_IDLE;
+//                            }
+//                            else if(ICE_VALVE.motor.command_state == MOTOR_WAIT_ENABLE_TORQUE){
+//                                ICE_VALVE.motor.isTorqueOn = true;
+//                                ICE_VALVE.motor.command_state = MOTOR_IDLE;
+//                            }
+//                            else if(ICE_VALVE.motor.command_state == MOTOR_WAIT_DOOR_OPEN){
+//                                ICE_VALVE.lock_state = false;
+//                                ICE_VALVE.motor.command_state = MOTOR_IDLE;
+//                            }
+//                            else if(ICE_VALVE.motor.command_state == MOTOR_WAIT_DOOR_CLOSE){
+//                                ICE_VALVE.lock_state = true;
+//                                ICE_VALVE.motor.command_state = MOTOR_IDLE;
+//                            }
+//                            
+//                        }
+//                            break;
+//                        default:
+//                            break;
+//                    }
+//                    DrinkOut_state = 0;
+//                }                    
+//                break;
+//          
+//                default:
+//                    break;            
+//            }
         }
     }
 }
