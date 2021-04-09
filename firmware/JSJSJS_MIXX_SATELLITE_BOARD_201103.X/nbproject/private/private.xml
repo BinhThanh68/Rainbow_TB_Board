@@ -6,11 +6,14 @@
             <file>file:/C:/microchip/harmony/v2_06/framework/system/int/src/sys_int_pic32.c</file>
             <file>file:/C:/microchip/harmony/v2_06/framework/system/tmr/src/sys_tmr.c</file>
             <file>file:/C:/Users/binht/Documents/Rainbow_TB_Board_Firmware/firmware/src/function_utilities.h</file>
+            <file>file:/C:/microchip/harmony/v2_06/framework/tcpip/src/tcp.c</file>
             <file>file:/C:/microchip/harmony/v2_06/framework/tcpip/src/tcpip_manager.c</file>
             <file>file:/C:/Users/binht/Documents/Rainbow_TB_Board_Firmware/firmware/src/function_initialization.h</file>
+            <file>file:/C:/microchip/harmony/v2_06/framework/tcpip/tcp.h</file>
             <file>file:/C:/Users/binht/Documents/Rainbow_TB_Board_Firmware/firmware/src/function_initialization.c</file>
             <file>file:/C:/Users/binht/Documents/Rainbow_TB_Board_Firmware/firmware/src/function_utilities.c</file>
             <file>file:/C:/Users/binht/Documents/Rainbow_TB_Board_Firmware/firmware/src/HX711.c</file>
+            <file>file:/C:/microchip/harmony/v2_06/framework/driver/ethmac/src/dynamic/drv_ethmac.c</file>
             <file>file:/C:/Users/binht/Documents/Rainbow_TB_Board_Firmware/firmware/src/system_config/default/system_tasks.c</file>
             <file>file:/C:/Users/binht/Documents/Rainbow_TB_Board_Firmware/firmware/src/LAN2CAN.h</file>
             <file>file:/C:/Users/binht/Documents/Rainbow_TB_Board_Firmware/firmware/src/main.c</file>

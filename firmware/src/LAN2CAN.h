@@ -119,22 +119,22 @@ typedef struct
 typedef struct
 {
     unsigned char connection;
-    DRINKOUT_ONE_MODULE module_left;
-    DRINKOUT_ONE_MODULE module_middle_left;
-    DRINKOUT_ONE_MODULE module_middle_right;
-    DRINKOUT_ONE_MODULE module_right;
+    DRINKOUT_ONE_MODULE module_1;
+    DRINKOUT_ONE_MODULE module_2;
+    DRINKOUT_ONE_MODULE module_3;
+    DRINKOUT_ONE_MODULE module_4;
 } ST_DRINKOUT_DATA;
 
 typedef enum
 {
-    MODULE_LEFT_DISK = 1,
-    MODULE_LEFT_DOOR,
-    MODULE_MIDDLE_LEFT_DISK,
-    MODULE_MIDDLE_LEFT_DOOR,
-    MODULE_MIDDLE_RIGHT_DISK,
-    MODULE_MIDDLE_RIGHT_DOOR,
-    MODULE_RIGHT_DISK,        
-    MODULE_RIGHT_DOOR        
+    MODULE_1_DISK = 1,
+    MODULE_1_DOOR,
+    MODULE_2_DISK,
+    MODULE_2_DOOR,
+    MODULE_3_DISK,
+    MODULE_3_DOOR,
+    MODULE_4_DISK,        
+    MODULE_4_DOOR        
 } DRINKOUT_MOTOR_ID;
 
 typedef enum

@@ -34,6 +34,8 @@ void DRINKOUT_Go(unsigned char ID, unsigned char goal_pos_index);
 void DRINKOUT_Go_by_value(unsigned char ID, int goal_pos);
 void DRINKOUT_CheckMovingStatus(unsigned char ID);
 void DRINKOUT_ReadPosition(unsigned char ID);
+void DRINKOUT_CloseAll();
+void DRINKOUT_OpenAll();
 long DRINK_GetWeight();
 unsigned short update_crc(unsigned short crc_accum, unsigned char *data_blk_ptr, unsigned short data_blk_size);
 
