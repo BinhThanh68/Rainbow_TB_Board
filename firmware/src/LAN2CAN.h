@@ -158,6 +158,8 @@ typedef struct
 {
     unsigned char startCleaning;
     unsigned char stopCleaning;
+    unsigned char openPlatform;
+    unsigned char closePlatform;
 } ST_ROMOTE_CONTROLER_DATA;
 
 
@@ -195,27 +197,14 @@ typedef struct
     uint8_t uartRxCount;
 } UART_DATA;
 
-// CAN definition
-typedef struct
-{
-    // system timer for transmitting CAN data to the Main controller 
-    SYS_TMR_HANDLE sysTmrCANOutHandle;
-    // CAN driver handle
-    DRV_HANDLE canHandle;
-    // CAN Rx data
-    CAN_RX_MSG_BUFFER *canRxMessage[256];
-    // CAN Rx count
-    uint8_t canRxCount;
-} CAN_DATA;
-
 
 typedef struct
 {
     /* The application's current state */
     LAN2CAN_STATES state;
     LAN_DATA        lanData;
-    CAN_DATA        canData;
     
+    SYS_TMR_HANDLE  sysTmrPCHandle;
     SYS_TMR_HANDLE  sysTmrUserHandle;
     SYS_TMR_HANDLE  sysTaskHandle;
     
@@ -285,6 +274,7 @@ typedef struct _ST_LOADCELL_DATA{
     unsigned char     isEnabled;
     unsigned char     focusMode;
     unsigned char     start_making;
+    unsigned char     targetPosition;
 }ST_LOADCELL_DATA;
 
 #define BARCODE_SIZE    20
@@ -304,9 +294,7 @@ int LAN2CAN_LANChipOff(void);
 int LAN2CAN_LANDataParsing(void);
 int LAN2CAN_LANCheckConnection(void);
 
-int LAN2CAN_CANReceiveCheckFromRCR(void);
-int LAN2CAN_CANSendToMainController(void);
-int LAN2CAN_CANClearBuffer(void);
+int LAN2CAN_SendToPC(void);
 
 
 void LAN2CAN_TaskFunction(void);

@@ -69,56 +69,59 @@ void LAN2CAN_Initialize(void) {
     // Initialize system timer handle
     gv.sysTaskHandle = SYS_TMR_HANDLE_INVALID;
     gv.sysTmrUserHandle = SYS_TMR_HANDLE_INVALID;
+    gv.sysTmrPCHandle = SYS_TMR_HANDLE_INVALID;
     gv.lanData.sysTmrLANCheckHandle = SYS_TMR_HANDLE_INVALID;
     gv.lanData.checkCount = 0;
-
-    // Initialize CAN
-    gv.canData.sysTmrCANOutHandle = SYS_TMR_HANDLE_INVALID;
-    gv.canData.canHandle = DRV_HANDLE_INVALID;
-    gv.canData.canRxCount = 0;
-    
-    
+        
     INIT_PINS(); 
-    
-    
+        
     if(BOARD_ID == 0){
-        // Sensor & Door
-        //load cell
+        // Outlet Motor * 8 --> UART2
+        // Cup Dispenser --> UART3
+        // Bardcode --> UART4
+        // Outlet Sensor (Din) * 4
+        // Relay (Dout) * 2
+        
+        INIT_UART_2(57600, 1, 0);
+        INIT_UART_3(9600, 1, 0);
+        INIT_UART_4(9600, 1, 0);
+        
+    }else if(BOARD_ID == 1){
+        // Ice Valve --> UART2
+        // Ice Dispenser --> UART3
+        // Water Leveler
+        
+        INIT_UART_2(57600, 1, 0);
+        INIT_UART_3(9600, 1, 0);
+        
+    }else if(BOARD_ID == 2){
+        // Tea Leveler (Din) * 4
+        // Load Cell (Digital) * 2
+               
        HX711_begin(128);
        HX711_set_scale(LOADCELL_CALIB_FACTOR_AT_POS_1);
        HX711_tare(3);
-//       LOADCELL_ENABLE=0;
+
        LOADCELL_INFO.isEnabled = 0;
        LOADCELL_INFO.focusMode = 0;
        LOADCELL_INFO.start_making = 0;
        LOADCELL_INFO.threshold = 160;
-       INIT_UART_3(57600, 1, 0);
-    }else if(BOARD_ID == 1){
-        // Ice & Cup  
-        INIT_UART_3(9600, 1, 0);
+       
+    }else if(BOARD_ID == 3){
+        // Remote Controller (LED * 3, Button * 4)
+        
     }
-    INIT_UART_2(9600, 1, 0);
-//    INIT_UART_3(9600, 1, 0);
-    INIT_UART_4(9600, 1, 0);
-
 }
 
 void LAN2CAN_Reset(void) {
-    // Reset CAN
-    gv.canData.sysTmrCANOutHandle = SYS_TMR_HANDLE_INVALID;
-    if (gv.canData.canHandle != DRV_HANDLE_INVALID) {
-        DRV_CAN_Close(gv.canData.canHandle);
-        gv.canData.canHandle = DRV_HANDLE_INVALID;
-    }
-    gv.canData.canRxCount = 0;
-    gv.canData.canHandle = DRV_CAN_Open(DRV_CAN_INDEX_0, DRV_IO_INTENT_READWRITE | DRV_IO_INTENT_NONBLOCKING | DRV_IO_INTENT_EXCLUSIVE);
-
+    gv.sysTmrPCHandle = SYS_TMR_HANDLE_INVALID;
+    
     // Reset LAN
     LAN2CAN_LANChipOn();
 }
+
 char data[4];
 char data2[4];
-
 
 int lan_connection_delay = 0;
 float test_data[255];
@@ -129,142 +132,6 @@ unsigned char focus_mode = 0;
 int Test_datapasring=0;
 void LAN2CAN_Tasks(void) {
     
-    if(BOARD_ID == 0){
-
-//        //new algorithm
-//        if(LOADCELL_ENABLE){
-//            if(test%3000==0){ 
-//                LOADCELL_DATA = HX711_get_units(1);
-//                if((LOADCELL_DATA >= (LOADCELL_THRESHOLD*20/100)) && (val1 ==0)){
-//                LOADCELL_SAMPLE_NUM=0;
-//            }
-//            }test++;
-//            
-//            if(LOADCELL_SAMPLE_NUM < 2){
-//                LOADCELL_DATA = HX711_get_units(1);
-//                
-//                if((LOADCELL_DATA >= (LOADCELL_THRESHOLD*30/100)) && (val1 ==0)){
-//                    time1 = ((int)(TMR3) << 16) | TMR2;
-//                    val1 = LOADCELL_DATA;
-//                    LOADCELL_SAMPLE_NUM++;
-//                    printf("val1: %f ", val1);
-//                    
-//                }
-//                else if((LOADCELL_DATA >= (LOADCELL_THRESHOLD*75/100)) && (val1 !=0) && (flowrate == 0)){
-//                    time2 = ((int)(TMR3) << 16) | TMR2;
-//                    val2 = LOADCELL_DATA;
-//                    printf("val2: %f ", val2);
-//                    delta_time = (time2>time1) ? (time2-time1) : ((pow(2,32) - 1)-time2)+time1;
-//                    flowrate = ((val2-val1)*1000) / delta_time;
-//                    printf("flow: %f ", flowrate);
-//                    if(flowrate < 0){
-//                        
-//                    }
-//                    LOADCELL_THRESHOLD -= (flowrate * LOADCELL_DELAY_TIME_2/1000);
-//                    int time_left = (LOADCELL_THRESHOLD - val2) / flowrate;
-//                    time_end = ((time_left + time2) < (pow(2,32)-1)) ? (time_left+time2) : ((time_left+time2)-(pow(2,32)-1));
-//                    LOADCELL_SAMPLE_NUM++;
-//                }
-//            }
-//            
-//            if(time_end !=0){
-////                printf("time end");
-//                if(time_end > time2){
-//                    if((((int)(TMR3) << 16) | TMR2) >= time_end){
-//                    PORTBbits.RB5 = 0;
-//                    Nop();
-//                    time1=0; time2=0; val1=0; val2=0; flowrate=0; time_end=0;
-//                    LOADCELL_ENABLE = 0;
-//                    }
-//                }else{
-//                    if( ((((int)(TMR3) << 16) | TMR2) < time2) && ((((int)(TMR3) << 16) | TMR2) >= time_end)){
-//                    PORTBbits.RB5 = 0;
-//                    Nop();
-//                    time1=0; time2=0; val1=0; val2=0; flowrate=0; time_end=0;
-//                    LOADCELL_ENABLE = 0;
-//                    }
-//                }
-//            }
-//            else{
-//                PORTBbits.RB5 = 1;
-//            }
-//        }
-            //Loadcell operation
-            //old algorithm
-        if(LOADCELL_INFO.isEnabled){
-            if(LOADCELL_INFO.focusMode == 0){
-                if(test%350000==0){
-                    LOADCELL_INFO.data = HX711_get_units(1);
-                    printf("0 ");
-                }
-            }else if(LOADCELL_INFO.focusMode == 1){
-                if(test%100000==0){
-                    LOADCELL_INFO.data = HX711_get_units(1);
-                    printf("1 ");
-                }
-            }else if(LOADCELL_INFO.focusMode == 2){
-                if(test%10000==0){
-                    LOADCELL_INFO.data = HX711_get_units(1);
-                    printf("2 ");
-                }
-            }else{
-                if(test%800==0){
-                    LOADCELL_INFO.data = HX711_get_units(1);
-                    printf("3 ");
-                }
-            }test++;
-
-       if(LOADCELL_INFO.start_making){
-           if(LOADCELL_INFO.focusMode == 0) { LOADCELL_INFO.focusMode = 1; }
-           
-        if((LOADCELL_INFO.data >= ((real_threshold *30)/100)) && val1 == 0){            
-             time1 = ((int)(TMR3) << 16) | TMR2;
-             val1 = LOADCELL_INFO.data;
-            // printf("%f ",val1);
-        }
-        else if((LOADCELL_INFO.data > ((real_threshold *75)/100)) && val1 != 0 && flowrate == 0){    
-             time2 = ((int)(TMR3) << 16) | TMR2;
-             val2 = LOADCELL_INFO.data;
-           // printf("%f ",val2);
-             delta_time = (time2>time1) ? (time2-time1) : ((pow(2,32) - 1)-time2)+time1;
-             flowrate = ((val2-val1)*1000) / delta_time;
-             LOADCELL_INFO.focusMode = 2;
-             if(flowrate < 0){          
-             }
-             real_threshold = LOADCELL_INFO.threshold - (flowrate * LOADCELL_DELAY_TIME_1/1000);
-            // printf("%f ",LOADCELL_THRESHOLD);
-        }
-        
-        if((LOADCELL_INFO.data > ((real_threshold *95)/100)) ){
-            LOADCELL_INFO.focusMode = 3;
-        }
-        
-        
-        if(LOADCELL_INFO.data >= real_threshold){
-                PORTBbits.RB5 = 0;
-               // printf("%f ",LOADCELL_DATA);
-                time1=0;time2=0;val1=0;val2=0;flowrate=0; LOADCELL_INFO.focusMode = 0; LOADCELL_INFO.start_making = 0;
-                real_threshold = LOADCELL_INFO.threshold;
-        }else{
-            PORTBbits.RB5 = 1;
-        }
-      }
-  
-    }
-
-    }
-    
-
-    //Remote controller operation
-    //cleaning button pushed
-    if(!PORTBbits.RB3){
-        REMOTE_CONTROLLER.startCleaning = 1;
-    }
-    if(!PORTBbits.RB5){
-        REMOTE_CONTROLLER.stopCleaning = 1;
-    }
-    
-    
     // Task
     LAN2CAN_TaskFunction(); 
     
@@ -272,7 +139,7 @@ void LAN2CAN_Tasks(void) {
         case LAN2CAN_STATE_INIT:
         {
             // Reset peripheral device
-            LAN2CAN_Reset();
+//            LAN2CAN_Reset();
 
             // Wait for the TCPIP Stack to become initialized                    
             if (TCPIP_STACK_Status(sysObj.tcpip) == SYS_STATUS_READY) {
@@ -340,7 +207,7 @@ void LAN2CAN_Tasks(void) {
                 gv.state = LAN2CAN_STATE_SERVING_CONNECTION;
 
                 // CAN Buffer clear
-                LAN2CAN_CANClearBuffer();
+//                LAN2CAN_CANClearBuffer();
 
             }
             break;
@@ -364,10 +231,8 @@ void LAN2CAN_Tasks(void) {
                 gv.state = LAN2CAN_STATE_CLOSING_CONNECTION;
                 
             } else {
-                // Check CAN message from RCR
-                LAN2CAN_CANReceiveCheckFromRCR();
                 // Send CAN message to the Main controller
-                LAN2CAN_CANSendToMainController();              
+                LAN2CAN_SendToPC();              
                 // Check LAN data
                 LAN2CAN_LANDataParsing();
                 // Check LAN connection
@@ -482,44 +347,112 @@ int LAN2CAN_LANDataParsing(void) {
                 // CAN Data packet handling
                 UINT16_UNION canMessageSize;
                 uint16_t canMessageIndex = 0;
-            case 0x00:
-                canMessageSize.UINT8[0] = gv.lanData.msgFromClient[6];
-                canMessageSize.UINT8[1] = gv.lanData.msgFromClient[7];
-                for (canMessageIndex = 0; canMessageIndex < canMessageSize.UINT16; canMessageIndex++) {
-                    UINT16_UNION canID;
-                    uint8_t canDLC;
-                    uint8_t canData[8];
-
-                    canID.UINT8[0] = gv.lanData.msgFromClient[9 + 12 * canMessageIndex];
-                    canID.UINT8[1] = gv.lanData.msgFromClient[10 + 12 * canMessageIndex];
-                    canDLC = gv.lanData.msgFromClient[11 + 12 * canMessageIndex];
-                    memcpy(canData, &gv.lanData.msgFromClient[12 + 12 * canMessageIndex], 8);
-                    
-                   
-                    // CAN ch0(Internal)
-                    if (gv.lanData.msgFromClient[8 + 12 * canMessageIndex] == 0) {
-                        //while(DRV_CAN0_ChannelMessageTransmit(CAN_CHANNEL0, canID.UINT16, canDLC, canData) == false);
-                        if (DRV_CAN0_ChannelMessageTransmit(CAN_CHANNEL0, canID.UINT16, canDLC, canData) == false) {
-                            // CAN TX buffer is full.
-//                            LAN2CAN_DEBUGMonitoring("CAN0 TX buffer is full.\n");
-                            return GPIF_ERR4;
-                        }
-                    }
-                    else {
-                        // Wrong CAN channel
-//                        LAN2CAN_DEBUGMonitoring("Wrong can channel.\n");
-                        return GPIF_ERR5;
-                    }
-                }
-                break;
-
-            case 0x10:
-            {
-                // BOARD_ID == 0    // // Sensor & Door
+            
                 int target = gv.lanData.msgFromClient[6];
                 int command = gv.lanData.msgFromClient[7];
                 int para1 = ((int)(gv.lanData.msgFromClient[8]) | (int)(gv.lanData.msgFromClient[9]<<8) | (int)(gv.lanData.msgFromClient[10]<<16) | (int)(gv.lanData.msgFromClient[11]<<24));
                 int para2 = ((int)(gv.lanData.msgFromClient[12]) | (int)(gv.lanData.msgFromClient[13]<<8) | (int)(gv.lanData.msgFromClient[14]<<16) | (int)(gv.lanData.msgFromClient[15]<<24));
+                
+            case 0x10:
+            {
+                // Board ID 0 (192.168.100.110)
+                // 0. Outlet Motor * 8 --> UART2
+                // 1. Cup Dispenser --> UART3
+                // Bardcode --> UART4
+                // Outlet Sensor (Din) * 4
+                // 2. Relay (Dout) * 2
+                
+                if(target == 0){
+                    // Outlet Motor
+                    switch(command){
+                    case 1:
+                        //para2 = 6 to check moving status
+                        SetMotorCommandState(para1, para2);
+                        DRINKOUT_CheckMovingStatus(para1);
+                        break;
+                    case 2:
+                        //para2 = 7 to read position
+                        SetMotorCommandState(para1, para2);
+                        DRINKOUT_ReadPosition(para1);
+                        break;
+                    case 3:
+                        //SetMotorCommandState(para1, para2);
+                        DRINKOUT_Spin(para1, para2);
+                        break;
+                    case 4:
+                        //SetMotorCommandState(para1, para2);
+                        DRINKOUT_DoorWork(para1, para2);
+                        break;
+                    }
+                }else if(target == 1){
+                    // Cup Dispenser
+                    switch(command){
+                        case 0:
+                            CUP_RequestCupOut(para1, para2);
+                            break;
+                        case 1:
+                            CUP_RequestSoldOut();
+                            break;
+                    }
+                }else if(target == 2){
+                    // Relay
+                    
+                }
+                break;
+            }
+            
+            case 0x11:
+            {
+                // Board ID 1 (192.168.100.111)
+                // 0. Ice Valve --> UART2
+                // 1. Ice Dispenser --> UART3
+                // Water Leveler
+                
+                if(target == 0){
+                    // Ice Valve
+                    switch(command){
+                        case 0:
+                            //close or open
+                            if(ICE_VALVE.lock_state){
+                                ICE_VALVE.motor.command_state = MOTOR_WAIT_DOOR_OPEN;
+                            }else{
+                                ICE_VALVE.motor.command_state = MOTOR_WAIT_DOOR_CLOSE;
+                            }
+                            ICE_Valve_Set_Lock(para1);
+                            break;
+                    }
+                }else if(target == 1){
+                    // Ice Dispenser
+                    switch(command){
+                        case 0:
+                            ICE_SetCommunicationMode(para1, para2);
+                            break;
+                        case 1:
+                            ICE_RequestIceOutWaterOut((float)(para1)/1000.0, (float)(para2)/1000.0);
+                            break;
+                        case 2:
+                            ICE_RequestClearStatusData();
+                            break;
+                        case 3:
+                            ICE_SetIceTimeout(para1);
+                            break;
+                        case 4:
+                            ICE_RequestRebootController();
+                            break;
+                        case 5:
+                            ICE_SetAmbientTemperatureSetting(para1, para2);
+                            break;
+                    }
+                }
+                break;
+            }
+            
+            case 0x12:
+            {
+                // Board ID 2 (192.168.100.112)
+                // Load Cell (Digital) * 2
+                // Tea Leveler (Din) * 4
+                
                 if(target == 0){
                     //load cell
                     switch(command){
@@ -554,99 +487,20 @@ int LAN2CAN_LANDataParsing(void) {
                             break;
                     }
                 }
-                else if(target == 1)
-                {
-                    //drink-out
-                    switch(command){
-                        case 0:
-                            //Go
-                            SetMotorCommandState(para1, para2);
-                            DRINKOUT_Go((para1&0xFF), (para2&0xFF));
-                            
-                            break;
-                        case 1:
-                            //para2 = 6 to check moving status
-                            SetMotorCommandState(para1, para2);
-                            DRINKOUT_CheckMovingStatus(para1);
-                            break;
-                        case 2:
-                            //para2 = 7 to read position
-                            SetMotorCommandState(para1, para2);
-                            DRINKOUT_ReadPosition(para1);
-                            break;
-                        case 3:
-                            //SetMotorCommandState(para1, para2);
-                            DRINKOUT_Spin(para1, para2);
-                            break;
-                        case 4:
-                            //SetMotorCommandState(para1, para2);
-                            DRINKOUT_DoorWork(para1, para2);
-                            break;
-                    }
-                }else if(target==2){
-                    //ice valve
-                    switch(command){
-                        case 0:
-                            //close or open
-                            if(ICE_VALVE.lock_state){
-                                ICE_VALVE.motor.command_state = MOTOR_WAIT_DOOR_OPEN;
-                            }else{
-                                ICE_VALVE.motor.command_state = MOTOR_WAIT_DOOR_CLOSE;
-                            }
-                            ICE_Valve_Set_Lock(para1);
-                            break;
-                    }
-                }else if(target==3){
+                break;
+            }
+            
+            case 0x13:
+            {
+                // Board ID 3 (192.168.100.113)
+                // Remote Controller (LED * 3, Button * 4)
+                
+                if(target == 0){
                     RemoteController_LED_Operation(para1, para2);
                 }
-            }
-            break;
-
-            case 0x11:
-            {
-                // BOARD_ID == 1    // // Ice & Cup
-                int target = gv.lanData.msgFromClient[6];
-                int command = gv.lanData.msgFromClient[7];
-                int para1 = ((int)(gv.lanData.msgFromClient[8]) | (int)(gv.lanData.msgFromClient[9]<<8) | (int)(gv.lanData.msgFromClient[10]<<16) | (int)(gv.lanData.msgFromClient[11]<<24));
-                int para2 = ((int)(gv.lanData.msgFromClient[12]) | (int)(gv.lanData.msgFromClient[13]<<8) | (int)(gv.lanData.msgFromClient[14]<<16) | (int)(gv.lanData.msgFromClient[15]<<24));
-
-                if(target == 0){
-                    // Ice
-                    switch(command){
-                        case 0:
-                            ICE_SetCommunicationMode(para1, para2);
-                            break;
-                        case 1:
-                            ICE_RequestIceOutWaterOut((float)(para1)/1000.0, (float)(para2)/1000.0);
-                            break;
-                        case 2:
-                            ICE_RequestClearStatusData();
-                            break;
-                        case 3:
-                            ICE_SetIceTimeout(para1);
-                            break;
-                        case 4:
-                            ICE_RequestRebootController();
-                            break;
-                        case 5:
-                            ICE_SetAmbientTemperatureSetting(para1, para2);
-                            break;
-                    }
-                }else if(target == 1){
-                    // Cup
-                    switch(command){
-                        case 0:
-                            CUP_RequestCupOut(para1, para2);
-                            break;
-                        case 1:
-                            CUP_RequestSoldOut();
-                            break;
-                    }
-                }
-                
-             
-            }
                 break;
+            }
+            
             default:
                 // Wrong data type/
 //                LAN2CAN_DEBUGMonitoring("Wrong data type.\n");
@@ -688,134 +542,47 @@ int LAN2CAN_LANCheckConnection(void) {
     return GPIF_NO_ERR;
 }
 
-int LAN2CAN_CANReceiveCheckFromRCR(void) {
-    CAN_RX_MSG_BUFFER *tempMsg;
-
-    // CAN channel 0
-    if ((PLIB_CAN_ChannelEventGet(CAN_ID_1, CAN_CHANNEL1) & CAN_RX_CHANNEL_NOT_EMPTY) == CAN_RX_CHANNEL_NOT_EMPTY) {
-        /* Get a pointer to RX message buffer */
-        //tempMsg = (CAN_RX_MSG_BUFFER *)PLIB_CAN_ReceivedMessageGet(CAN_ID_1, CAN_CHANNEL1);
-        //memcpy(lan2canData.canArmData.canRxMessage[lan2canData.canArmData.canRxCount], tempMsg, sizeof(CAN_RX_MSG_BUFFER));
-        gv.canData.canRxMessage[gv.canData.canRxCount] = (CAN_RX_MSG_BUFFER *) PLIB_CAN_ReceivedMessageGet(CAN_ID_1, CAN_CHANNEL1);
-        /* Message processing is done, update the message buffer pointer. */
-        PLIB_CAN_ChannelUpdate(CAN_ID_1, CAN_CHANNEL1);
-        gv.canData.canRxCount++;
-    }
-    return GPIF_NO_ERR;
-}
 
 
-int LAN2CAN_CANSendToMainController(void) {
+int LAN2CAN_SendToPC(void) {
         
     // Set 10msec system timer
-    if (gv.canData.sysTmrCANOutHandle == SYS_TMR_HANDLE_INVALID) {
-        gv.canData.sysTmrCANOutHandle = SYS_TMR_DelayMS(10);
+    if (gv.sysTmrPCHandle == SYS_TMR_HANDLE_INVALID) {
+        gv.sysTmrPCHandle = SYS_TMR_DelayMS(10);
         return;
     }
 
-    if (SYS_TMR_DelayStatusGet(gv.canData.sysTmrCANOutHandle) == false) {
+    if (SYS_TMR_DelayStatusGet(gv.sysTmrPCHandle) == false) {
         return;
     }
-    gv.canData.sysTmrCANOutHandle = SYS_TMR_DelayMS(1);
+    gv.sysTmrPCHandle = SYS_TMR_DelayMS(10);
 
     
     uint8_t tempIndex = 0;
     uint16_t currentIndex = 0;
     uint16_t dataSize = 0;
-    uint16_t canMessageSize = 0;
-
-
-    // Send CAN data to the master
-    if (gv.canData.canRxCount != 0) {
-        
-        // Packet header
-        gv.lanData.msgToClient[0] = 0x24;
-        // Calculate data size
-        dataSize = 4 + 2 + (gv.canData.canRxCount)*12;
-        gv.lanData.msgToClient[1] = (uint8_t) (dataSize);
-        gv.lanData.msgToClient[2] = (uint8_t) (dataSize >> 8);
-        // From slave
-        gv.lanData.msgToClient[3] = 0x01;
-        // To master
-        gv.lanData.msgToClient[4] = 0x00;
-        // Data type: CAN
-        gv.lanData.msgToClient[5] = 0x00;
-        // Total CAN message size
-        canMessageSize = gv.canData.canRxCount;
-        gv.lanData.msgToClient[6] = (uint8_t) (canMessageSize);
-        gv.lanData.msgToClient[7] = (uint8_t) (canMessageSize >> 8);
-        // Assign CAN message data for CAN channel 0
-        currentIndex = 8;
-        for (tempIndex = 0; tempIndex < gv.canData.canRxCount; tempIndex++) {
-            // CAN port 0
-            gv.lanData.msgToClient[currentIndex] = 0x00;
-            currentIndex++;
-            // CAN ID
-            gv.lanData.msgToClient[currentIndex] = (uint8_t) (gv.canData.canRxMessage[tempIndex]->msgSID.sid);
-            currentIndex++;
-            gv.lanData.msgToClient[currentIndex] = (uint8_t) ((gv.canData.canRxMessage[tempIndex]->msgSID.sid) >> 8);
-            currentIndex++;
-            // CAN DLC
-            gv.lanData.msgToClient[currentIndex] = gv.canData.canRxMessage[tempIndex]->msgEID.data_length_code;
-            currentIndex++;
-            // CAN data
-            memcpy(&gv.lanData.msgToClient[currentIndex], gv.canData.canRxMessage[tempIndex]->data, 8);
-            currentIndex += 8;
-        }
-        
-        // Packet footer
-        gv.lanData.msgToClient[currentIndex] = 0x25;
-        currentIndex++;
-        
-                
-        // Reset CAN message count
-        gv.canData.canRxCount = 0;
-    }else{
-        uint16_t currentIndex = 0;
-        gv.lanData.msgToClient[currentIndex] = 0x24;                                currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = 6;                                   currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = 0;                                   currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = 0x01;                                currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = 0x00;                                currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = 0x01;                                currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = 0x00;                                currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = 0x00;                                currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = 0x25;                                currentIndex++;
-                
-    }
 
     if(BOARD_ID == 0){
-    
-//        if((BARCODE_DATA[0] != 0) && (BARCODE_DATA[1] != 0)){
-        // Sensor & Door & Bar code
+        // Board ID 0 (192.168.100.110)
+        // Outlet Motor * 8 --> UART2
+        // Cup Dispenser --> UART3
+        // Bardcode --> UART4
+        // Outlet Sensor (Din) * 4  [module_x.cupPresent]
+        // Relay (Dout) * 2
+        
         gv.lanData.msgToClient[currentIndex] = 0x24;        currentIndex++;
         // Calculate data size
-        dataSize = 4 + 6 + 76 + 5 + 2 + BARCODE_SIZE;
+        dataSize = 4 +76 + 7 + BARCODE_SIZE;
         gv.lanData.msgToClient[currentIndex] = (uint8_t) (dataSize);   currentIndex++;
         gv.lanData.msgToClient[currentIndex] = (uint8_t) (dataSize >> 8);  currentIndex++;
         // From slave   
         gv.lanData.msgToClient[currentIndex] = 0x01;       currentIndex++;
         // To master
         gv.lanData.msgToClient[currentIndex] = 0x00;       currentIndex++;
-        // Data type: SENSOR & DOOR & BARCODE
+        // Data type: Board ID 0 (0xF0+0)
         gv.lanData.msgToClient[currentIndex] = 0xF0;       currentIndex++;
         
-        // Load cell Data (6 byte)
-        gv.lanData.msgToClient[currentIndex] = (int)(LOADCELL_INFO.data) & 0xFF;                     currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = ((int)(LOADCELL_INFO.data) >> 8) & 0xFF;              currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = ((int)(LOADCELL_INFO.data) >> 16) & 0xFF;             currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = ((int)(LOADCELL_INFO.data) >> 24) & 0xFF;             currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = LOADCELL_INFO.isEnabled;                              currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = LOADCELL_INFO.start_making;                           currentIndex++;
-        
-        
-        //DRINKOUT system data (76 bytes)
-//        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.connection;                                        currentIndex++;
-        
-        //module left
-//        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_1.ready;                                 currentIndex++;
-//        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_1.currentPosition;                       currentIndex++;        
-//        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_1.doorstate;                             currentIndex++;
+        // Outlet Motor (19*4 = 76byte)
         gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_1.cupPresent;                            currentIndex++;
         gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_1.Disk.connection;                       currentIndex++;
         gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_1.Disk.isTorqueOn;                       currentIndex++;
@@ -837,10 +604,6 @@ int LAN2CAN_CANSendToMainController(void) {
         gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_1.Door.presentPosition >> 24)&0xFF;     currentIndex++;
         
         
-        //module middle left
-//        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_2.ready;                                 currentIndex++;
-//        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_2.currentPosition;                       currentIndex++;        
-//        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_2.doorstate;                             currentIndex++;
         gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_2.cupPresent;                            currentIndex++;
         gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_2.Disk.connection;                       currentIndex++;
         gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_2.Disk.isTorqueOn;                       currentIndex++;
@@ -861,10 +624,7 @@ int LAN2CAN_CANSendToMainController(void) {
         gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_2.Door.presentPosition >>16)&0xFF;      currentIndex++;
         gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_2.Door.presentPosition >> 24)&0xFF;     currentIndex++;
         
-        //module middle right
-//        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_3.ready;                                 currentIndex++;
-//        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_3.currentPosition;                       currentIndex++;        
-//        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_3.doorstate;                             currentIndex++;
+        
         gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_3.cupPresent;                            currentIndex++;
         gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_3.Disk.connection;                       currentIndex++;
         gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_3.Disk.isTorqueOn;                       currentIndex++;
@@ -885,10 +645,7 @@ int LAN2CAN_CANSendToMainController(void) {
         gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_3.Door.presentPosition >>16)&0xFF;      currentIndex++;
         gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_3.Door.presentPosition >> 24)&0xFF;     currentIndex++;
         
-        //module right        
-//        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_4.ready;                                 currentIndex++;
-//        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_4.currentPosition;                       currentIndex++;        
-//        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_4.doorstate;                             currentIndex++;
+        
         gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_4.cupPresent;                            currentIndex++;
         gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_4.Disk.connection;                       currentIndex++;
         gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_4.Disk.isTorqueOn;                       currentIndex++;
@@ -909,6 +666,47 @@ int LAN2CAN_CANSendToMainController(void) {
         gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_4.Door.presentPosition >>16)&0xFF;      currentIndex++;
         gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_4.Door.presentPosition >> 24)&0xFF;     currentIndex++;
         
+        
+        // Cup Data (7 byte)
+        gv.lanData.msgToClient[currentIndex] = CUP_INFO.connection;             currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = CUP_INFO.operating_port;         currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = CUP_INFO.output_setting_num;     currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = CUP_INFO.output_current_num;     currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = CUP_INFO.op_stat;                currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = CUP_INFO.err_stat;               currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = CUP_INFO.soldout_stat;           currentIndex++;
+        
+        
+         // Bar code Data (BARCODE_SIZE bytes)
+        int idx = 0;
+        for(idx=0; idx<BARCODE_SIZE; idx++){
+            gv.lanData.msgToClient[currentIndex] =  BARCODE_DATA[idx];             currentIndex++;
+        }
+        
+        
+        // Packet footer
+        gv.lanData.msgToClient[currentIndex] = 0x25;
+        currentIndex++;
+        
+    }else if(BOARD_ID == 1){
+        // Board ID 1 (192.168.100.111)
+        // Ice Valve --> UART2
+        // Ice Dispenser --> UART3
+        // Water Leveler [ICE_VALVE.sensor]
+        
+        gv.lanData.msgToClient[currentIndex] = 0x24;        currentIndex++;
+        // Calculate data size
+        dataSize = 4 + 5 + 16;
+        gv.lanData.msgToClient[currentIndex] = (uint8_t) (dataSize);   currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = (uint8_t) (dataSize >> 8);  currentIndex++;
+        // From slave   
+        gv.lanData.msgToClient[currentIndex] = 0x01;       currentIndex++;
+        // To master
+        gv.lanData.msgToClient[currentIndex] = 0x00;       currentIndex++;
+        // Data type: Board ID 1 (0xF0+1)
+        gv.lanData.msgToClient[currentIndex] = 0xF1;       currentIndex++;
+        
+        
         //Ice valve (5 bytes)
         gv.lanData.msgToClient[currentIndex] = ICE_VALVE.motor.connection;                                      currentIndex++;
         gv.lanData.msgToClient[currentIndex] = ICE_VALVE.motor.isProfileSet;                                    currentIndex++;
@@ -916,44 +714,7 @@ int LAN2CAN_CANSendToMainController(void) {
         gv.lanData.msgToClient[currentIndex] = ICE_VALVE.lock_state;                                            currentIndex++;
         gv.lanData.msgToClient[currentIndex] = ICE_VALVE.sensor;                                                currentIndex++;
         
-        //remote controller data (2 bytes))
-        gv.lanData.msgToClient[currentIndex] = REMOTE_CONTROLLER.startCleaning;                                 currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = REMOTE_CONTROLLER.stopCleaning;                                  currentIndex++;
-         // Bar code Data (BARCODE_SIZE bytes)
-        int idx = 0;
-        for(idx=0; idx<BARCODE_SIZE; idx++){
-            gv.lanData.msgToClient[currentIndex] =  BARCODE_DATA[idx];             currentIndex++;
-        }
         
-        // Packet footer
-        gv.lanData.msgToClient[currentIndex] = 0x25;
-        currentIndex++;
-        
-        
-        
-//        int i;
-//        for(i=0; i<BARCODE_SIZE; i++){
-//            BARCODE_DATA[i] = 0;    
-//        }
-//      }
-        
-        
-        
-    }
-     else if(BOARD_ID == 1){
-        // Ice & Cup
-        gv.lanData.msgToClient[currentIndex] = 0x24;        currentIndex++;
-        // Calculate data size
-        dataSize = 4 + 16 + 7 + 4;
-        gv.lanData.msgToClient[currentIndex] = (uint8_t) (dataSize);   currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = (uint8_t) (dataSize >> 8);  currentIndex++;
-        // From slave   
-        gv.lanData.msgToClient[currentIndex] = 0x01;       currentIndex++;
-        // To master
-        gv.lanData.msgToClient[currentIndex] = 0x00;       currentIndex++;
-        // Data type: ICE & CUP
-        gv.lanData.msgToClient[currentIndex] = 0xF1;       currentIndex++;
-
         // Ice Data (16 byte)
         gv.lanData.msgToClient[currentIndex] = ICE_INFO.connection;             currentIndex++;
         gv.lanData.msgToClient[currentIndex] = ICE_INFO.comm_mode;              currentIndex++;
@@ -971,22 +732,73 @@ int LAN2CAN_CANSendToMainController(void) {
         gv.lanData.msgToClient[currentIndex] = ICE_INFO.status.B[1];            currentIndex++;
         gv.lanData.msgToClient[currentIndex] = ICE_INFO.status.B[2];            currentIndex++;
         gv.lanData.msgToClient[currentIndex] = ICE_INFO.status.B[3];            currentIndex++;
-
-        // Cup Data (7 byte)
-        gv.lanData.msgToClient[currentIndex] = CUP_INFO.connection;             currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = CUP_INFO.operating_port;         currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = CUP_INFO.output_setting_num;     currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = CUP_INFO.output_current_num;     currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = CUP_INFO.op_stat;                currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = CUP_INFO.err_stat;               currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = CUP_INFO.soldout_stat;           currentIndex++;
-
+        
+                
+        // Packet footer
+        gv.lanData.msgToClient[currentIndex] = 0x25;
+        currentIndex++;
+        
+    }else if(BOARD_ID == 2){
+        // Board ID 2 (192.168.100.112)
+        // Load Cell (Digital) * 2
+        // Tea Leveler (Din) * 4
+                
+        gv.lanData.msgToClient[currentIndex] = 0x24;        currentIndex++;
+        // Calculate data size
+        dataSize = 4 + 7 + 4;
+        gv.lanData.msgToClient[currentIndex] = (uint8_t) (dataSize);   currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = (uint8_t) (dataSize >> 8);  currentIndex++;
+        // From slave   
+        gv.lanData.msgToClient[currentIndex] = 0x01;       currentIndex++;
+        // To master
+        gv.lanData.msgToClient[currentIndex] = 0x00;       currentIndex++;
+        // Data type: Board ID 2 (0xF0+2)
+        gv.lanData.msgToClient[currentIndex] = 0xF2;       currentIndex++;
+        
+        
+        // Load cell Data (7 byte)
+        gv.lanData.msgToClient[currentIndex] = (int)(LOADCELL_INFO.data) & 0xFF;                     currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = ((int)(LOADCELL_INFO.data) >> 8) & 0xFF;              currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = ((int)(LOADCELL_INFO.data) >> 16) & 0xFF;             currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = ((int)(LOADCELL_INFO.data) >> 24) & 0xFF;             currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = LOADCELL_INFO.isEnabled;                              currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = LOADCELL_INFO.start_making;                           currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = LOADCELL_INFO.targetPosition;                         currentIndex++;
+        
+        
         // Tea dispenser status (4 bytes)
         gv.lanData.msgToClient[currentIndex] = DIO_1[0];                        currentIndex++;
         gv.lanData.msgToClient[currentIndex] = DIO_1[1];                        currentIndex++;
         gv.lanData.msgToClient[currentIndex] = DIO_1[2];                        currentIndex++;
         gv.lanData.msgToClient[currentIndex] = DIO_1[3];                        currentIndex++;
         
+        
+        // Packet footer
+        gv.lanData.msgToClient[currentIndex] = 0x25;
+        currentIndex++;
+        
+    }else if(BOARD_ID == 3){
+        // Remote Controller (LED * 3, Button * 4)
+        
+        gv.lanData.msgToClient[currentIndex] = 0x24;        currentIndex++;
+        // Calculate data size
+        dataSize = 4 + 4;
+        gv.lanData.msgToClient[currentIndex] = (uint8_t) (dataSize);   currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = (uint8_t) (dataSize >> 8);  currentIndex++;
+        // From slave   
+        gv.lanData.msgToClient[currentIndex] = 0x01;       currentIndex++;
+        // To master
+        gv.lanData.msgToClient[currentIndex] = 0x00;       currentIndex++;
+        // Data type: Board ID 3 (0xF0+3)
+        gv.lanData.msgToClient[currentIndex] = 0xF3;       currentIndex++;
+        
+        
+        // Remote Controller Data (4 bytes))
+        gv.lanData.msgToClient[currentIndex] = REMOTE_CONTROLLER.startCleaning;                                 currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = REMOTE_CONTROLLER.stopCleaning;                                  currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = REMOTE_CONTROLLER.openPlatform;                                  currentIndex++;
+        gv.lanData.msgToClient[currentIndex] = REMOTE_CONTROLLER.closePlatform;                                  currentIndex++;
+ 
         
         // Packet footer
         gv.lanData.msgToClient[currentIndex] = 0x25;
@@ -1018,26 +830,14 @@ int LAN2CAN_CANSendToMainController(void) {
         gv.lanData.msgToClient[currentIndex] = 0x25;
         currentIndex++;
         
-//        // Enter
-//        gv.lanData.msgToClient[currentIndex] = 0x0A;       currentIndex++;
     }
+    
+    
     TCPIP_TCP_ArrayPut(gv.lanData.socketHandle, gv.lanData.msgToClient, currentIndex);
     TCPIP_TCP_Flush(gv.lanData.socketHandle);
     
     return GPIF_NO_ERR;
 }
-
-int LAN2CAN_CANClearBuffer(void) {
-    // CAN channel 0
-    PLIB_CAN_ChannelReset(CAN_ID_1, CAN_CHANNEL0);
-    while (PLIB_CAN_ChannelResetIsComplete(CAN_ID_1, CAN_CHANNEL0) != true);
-    PLIB_CAN_ChannelReset(CAN_ID_1, CAN_CHANNEL1);
-    while (PLIB_CAN_ChannelResetIsComplete(CAN_ID_1, CAN_CHANNEL1) != true);
-    gv.canData.canRxCount = 0;
-
-    return GPIF_NO_ERR;
-}
-
 
 
 void LAN2CAN_TaskFunction(void){    
@@ -1050,6 +850,74 @@ void LAN2CAN_TaskFunction(void){
     UART2Function();
     UART3Function();
     UART4Function();
+    
+    
+    
+    if(BOARD_ID == 2){
+        if(LOADCELL_INFO.isEnabled){
+            if(LOADCELL_INFO.focusMode == 0){
+                if(test%350000==0){
+                    LOADCELL_INFO.data = HX711_get_units(1);
+                    printf("0 ");
+                }
+            }else if(LOADCELL_INFO.focusMode == 1){
+                if(test%100000==0){
+                    LOADCELL_INFO.data = HX711_get_units(1);
+                    printf("1 ");
+                }
+            }else if(LOADCELL_INFO.focusMode == 2){
+                if(test%10000==0){
+                    LOADCELL_INFO.data = HX711_get_units(1);
+                    printf("2 ");
+                }
+            }else{
+                if(test%800==0){
+                    LOADCELL_INFO.data = HX711_get_units(1);
+                    printf("3 ");
+                }
+            }test++;
+
+            if(LOADCELL_INFO.start_making){
+                if(LOADCELL_INFO.focusMode == 0) { 
+                    LOADCELL_INFO.focusMode = 1; 
+                }
+           
+                if((LOADCELL_INFO.data >= ((real_threshold *30)/100)) && val1 == 0){            
+                     time1 = ((int)(TMR3) << 16) | TMR2;
+                     val1 = LOADCELL_INFO.data;
+                    // printf("%f ",val1);
+                }
+                else if((LOADCELL_INFO.data > ((real_threshold *75)/100)) && val1 != 0 && flowrate == 0){    
+                     time2 = ((int)(TMR3) << 16) | TMR2;
+                     val2 = LOADCELL_INFO.data;
+                   // printf("%f ",val2);
+                     delta_time = (time2>time1) ? (time2-time1) : ((pow(2,32) - 1)-time2)+time1;
+                     flowrate = ((val2-val1)*1000) / delta_time;
+                     LOADCELL_INFO.focusMode = 2;
+                     if(flowrate < 0){          
+                     }
+                     real_threshold = LOADCELL_INFO.threshold - (flowrate * LOADCELL_DELAY_TIME_1/1000);
+                    // printf("%f ",LOADCELL_THRESHOLD);
+                }
+        
+                if((LOADCELL_INFO.data > ((real_threshold *95)/100)) ){
+                    LOADCELL_INFO.focusMode = 3;
+                }
+        
+                if(LOADCELL_INFO.data >= real_threshold){
+                    PORTBbits.RB5 = 0;
+                    time1=0;time2=0;val1=0;val2=0;flowrate=0; LOADCELL_INFO.focusMode = 0; LOADCELL_INFO.start_making = 0;
+                    real_threshold = LOADCELL_INFO.threshold;
+                }else{
+                    PORTBbits.RB5 = 1;
+                }
+            }
+        }
+    }
+    
+
+   
+    
     
     // Loop Timer 50 msec
     if (gv.sysTaskHandle == SYS_TMR_HANDLE_INVALID) {
@@ -1674,8 +1542,6 @@ void LAN2CAN_TaskFunction(void){
             
         }
         drinkout_cnt++;
-
-
     }
     
     else if(BOARD_ID == 1){
@@ -1722,183 +1588,78 @@ void LAN2CAN_TaskFunction(void){
 
 void PORTFunction(){
     if(BOARD_ID == 0){
-         //Sensor & Door & Barcode
-//        DIO_0[0] = PORTBbits.RB2;
-//        DIO_0[1] = PORTBbits.RB3;
-//        DIO_0[2] = PORTBbits.RB4;
-//        DIO_0[3] = PORTBbits.RB5;
-//        ICE_VALVE.sensor = PORTBbits.RB4;
-        DRINKOUT_INFO.module_1.cupPresent = PORTBbits.RB4;
+        // Board ID 0 (192.168.100.110)
+        // Outlet Motor * 8 --> UART2
+        // Cup Dispenser --> UART3
+        // Bardcode --> UART4
+        // Outlet Sensor (Din) * 4
+        // Relay (Dout) * 2
         
+        DRINKOUT_INFO.module_1.cupPresent = PORTBbits.RB2;
+        DRINKOUT_INFO.module_2.cupPresent = PORTBbits.RB3;
+        DRINKOUT_INFO.module_3.cupPresent = PORTBbits.RB4;
+        DRINKOUT_INFO.module_4.cupPresent = PORTBbits.RB5;
         
     }else if(BOARD_ID == 1){
-        // Ice & Cup & tea
+        // Board ID 1 (192.168.100.111)
+        // Ice Valve --> UART2
+        // Ice Dispenser --> UART3
+        // Water Leveler
+        
+        ICE_VALVE.sensor = PORTBbits.RB4;
+        
+    }else if(BOARD_ID == 2){
+        // Board ID 2 (192.168.100.112)
+        // Load Cell (Digital) * 2
+        // Tea Leveler (Din) * 4
+        
         DIO_1[0] = PORTBbits.RB2;
         DIO_1[1] = PORTBbits.RB3;
         DIO_1[2] = PORTBbits.RB4;
         DIO_1[3] = PORTBbits.RB5;
         
+    }else if(BOARD_ID == 3){
+        // Board ID 3 (192.168.100.113)
+        // Remote Controller (LED * 3, Button * 4)
+        
+        REMOTE_CONTROLLER.startCleaning = !PORTBbits.RB2;
+        REMOTE_CONTROLLER.stopCleaning = !PORTBbits.RB3;
+        REMOTE_CONTROLLER.openPlatform = !PORTBbits.RB4;
+        REMOTE_CONTROLLER.closePlatform = !PORTBbits.RB5;
         
     }
 }
 
 
 void UART2Function(){
-    static unsigned char cup_buf[15] = {0,};
-    static int cup_state = 0;
-    static int cup_index = 0;
+    static unsigned char DrinkOut_state = 0;
+    static unsigned char DrinkOut_index;
+    static short DrinkOut_data_length = 0;
+    static int DrinkOut_buf[30] = {0,};
     
     
-    static unsigned char barcode_buf[BARCODE_SIZE] = {0,};
-    static int barcode_state = 0;
-    static int barcode_index = 0;
+
     
  
     if(U2STAbits.URXDA == TRUE){
         unsigned char temp_ch = U2RXREG;
-        if(BOARD_ID == 0){
-            // Sensor & Door & Barcode
-            // Bar code ============== ================================================
-            switch(barcode_state){
-                case 0:
-                    if(temp_ch == 'a'){
-                        // match STX
-                        barcode_state = 1;
-                        barcode_index = 0;
-                    }
-                    break;
-                case 1:{
-                    if((temp_ch != 'z') && barcode_index < BARCODE_SIZE){
-                        barcode_buf[barcode_index] = temp_ch;
-                        barcode_index++;
-                        
-                    }else{
-                        int i;
-                        for(i =barcode_index; i<BARCODE_SIZE; i++){
-                            barcode_buf[i] = 0;
-                        }
-                        
-                        int idx = 0;
-                        for(idx=0; idx<BARCODE_SIZE; idx++){
-                            BARCODE_DATA[idx] = barcode_buf[idx];
-                        }
-                        barcode_state = 0;
-                    }
-                }
-                    break;
-                default:
-                    break;
-            }
-            
-           
-            
-
-        }else if(BOARD_ID == 1){
-            // Ice & Cup
-            // Cup ==============================================================
-            
-            switch(cup_state){
-                case 0:
-                    if(temp_ch == 0x02){
-                        // match STX
-                        cup_state = 1;
-                        
-                        cup_buf[0] = 0x02;
-                        cup_index = 1;
-                    }
-                    break;
-                case 1:{
-                    if((cup_index == 1) && (temp_ch != 0x07)){
-                        // length must be 7
-                        cup_index = 0;
-                        break;
-                    }
-                    cup_buf[cup_index] = temp_ch;
-                    cup_index++;
-                    if(cup_index > 10){
-                        cup_state = 2;
-                    }
-                }
-                    break;
-                case 2:
-                    if(cup_buf[9] == 0x03){
-                        // match ETX
-                        short temp_sum = (short)(cup_buf[1]) + (short)(cup_buf[2]) + (short)(cup_buf[3]) + (short)(cup_buf[4]) +
-                                        (short)(cup_buf[5]) + (short)(cup_buf[6]) + (short)(cup_buf[7]) +
-                                        (short)(cup_buf[8]) + (short)(cup_buf[9]);
-                        
-                        if((temp_sum&0xFF) == cup_buf[10]){
-                            // match BCC
-                            CUP_INFO.operating_port = cup_buf[3];
-                            CUP_INFO.output_setting_num = cup_buf[4];
-                            CUP_INFO.output_current_num = cup_buf[5];
-                            CUP_INFO.op_stat = cup_buf[6];
-                            CUP_INFO.err_stat = cup_buf[7];
-                            CUP_INFO.soldout_stat = cup_buf[8];
-                                                        
-                            cup_connection_count = 0;
-                            cup_state = 0;
-                        }else{
-                            cup_state = 0;
-                        }
-                    }else{
-                        cup_state = 0;
-                    }
-                    break;
-                default:
-                    break;
-            }
-        }
-    }
-}
-
-
-void UART3Function(){
-    static unsigned char ice_buf[10] = {0,};
-    static int ice_state = 0;
-    static int ice_index = 0;
-    
-    
         
-    static unsigned char DrinkOut_state = 0;
-    static unsigned char DrinkOut_index;
-//    static unsigned char Test_index;
-    static short DrinkOut_data_length = 0;
-    static int DrinkOut_buf[30] = {0,};
-//    static int Test_buf[30] = {0,};
-
-    
-//    while(U3STAbits.URXDA == TRUE){
-//        if(BOARD_ID == 0){
-//            printf("%c", U3RXREG);
-//        }
-//    }
-    
-    if(U3STAbits.URXDA == TRUE){
-        unsigned char temp_ch = U3RXREG;
         
-        if(BOARD_ID == 0){
-            // Sensor & Door
-//            printf("%c", temp_ch);
+        if(BOARD_ID == 0 || BOARD_ID == 1){
+            // Outlet Motor * 8
+            // Ice Valve
             switch(DrinkOut_state){
                 case 0:
                     if(temp_ch == 0xFF){
                         // match header 1
                         DrinkOut_state = 1;
-//                        Test_index = 0;
-//                        Test_buf[Test_index] = temp_ch;
-//                        Test_index++;
                     }
                     break;
                 case 1:
                     if(temp_ch == 0xFF){
                         // match header  2
                         DrinkOut_state = 2;
-                        
-//                        Test_buf[Test_index] = temp_ch;
-//                        Test_index++;
-                     }
-                    else{
+                    }else{
                         DrinkOut_state = 0;
                     }
                     break;
@@ -1906,10 +1667,7 @@ void UART3Function(){
                     if(temp_ch == 0xFD || (temp_ch == 0x00)){
                         // match header 3
                         DrinkOut_state = 3;
-//                        Test_buf[Test_index] = temp_ch;
-//                        Test_index++;
-                    }
-                    else{
+                    }else{
                         DrinkOut_state = 0;
                     }
                     break;
@@ -1918,17 +1676,12 @@ void UART3Function(){
                         // match header 4
                         DrinkOut_state = 4;
                         DrinkOut_index = 0;
-//                        Test_buf[Test_index] = temp_ch;
-//                        Test_index++;
-                    }
-                    else{
+                    }else{
                         DrinkOut_state = 0;
                     }
                     break;    
                 case 4:
                 {
-//                    Test_buf[Test_index] = temp_ch;
-//                    Test_index++;
                     DrinkOut_buf[DrinkOut_index] = temp_ch;
                     DrinkOut_index++;
                     if((DrinkOut_index >= 3) && (DrinkOut_data_length == 0)){
@@ -1948,12 +1701,6 @@ void UART3Function(){
                         DrinkOut_state = 0;
                         break;
                     }
-//                    unsigned short checkcrc = update_crc(0, &Test_buf, (sizeof(Test_buf)/sizeof(Test_buf[0])));
-//                    if((DrinkOut_buf[DrinkOut_index-2] != (checkcrc&0xFF)) || (DrinkOut_buf[DrinkOut_index-1] != ((checkcrc>>8)&0xFF)) ){
-//                        //CRC doesn't match
-//                        DrinkOut_state = 0;
-//                        break;
-//                    }
                     switch(DrinkOut_buf[0]){
                         //which motor is data from
                         case MODULE_1_DISK:
@@ -2425,10 +2172,82 @@ void UART3Function(){
                     break;            
             }
             
-             
+        }else{
+            ;
+        }
+        
+    }
+}
+
+
+void UART3Function(){
+    static unsigned char ice_buf[10] = {0,};
+    static int ice_state = 0;
+    static int ice_index = 0;
+    
+    static unsigned char cup_buf[15] = {0,};
+    static int cup_state = 0;
+    static int cup_index = 0;
+        
+    
+    if(U3STAbits.URXDA == TRUE){
+        unsigned char temp_ch = U3RXREG;
+        
+        if(BOARD_ID == 0){
+            // Cup Dispenser
+            switch(cup_state){
+                case 0:
+                    if(temp_ch == 0x02){
+                        // match STX
+                        cup_state = 1;
+                        
+                        cup_buf[0] = 0x02;
+                        cup_index = 1;
+                    }
+                    break;
+                case 1:{
+                    if((cup_index == 1) && (temp_ch != 0x07)){
+                        // length must be 7
+                        cup_index = 0;
+                        break;
+                    }
+                    cup_buf[cup_index] = temp_ch;
+                    cup_index++;
+                    if(cup_index > 10){
+                        cup_state = 2;
+                    }
+                }
+                    break;
+                case 2:
+                    if(cup_buf[9] == 0x03){
+                        // match ETX
+                        short temp_sum = (short)(cup_buf[1]) + (short)(cup_buf[2]) + (short)(cup_buf[3]) + (short)(cup_buf[4]) +
+                                        (short)(cup_buf[5]) + (short)(cup_buf[6]) + (short)(cup_buf[7]) +
+                                        (short)(cup_buf[8]) + (short)(cup_buf[9]);
+                        
+                        if((temp_sum&0xFF) == cup_buf[10]){
+                            // match BCC
+                            CUP_INFO.operating_port = cup_buf[3];
+                            CUP_INFO.output_setting_num = cup_buf[4];
+                            CUP_INFO.output_current_num = cup_buf[5];
+                            CUP_INFO.op_stat = cup_buf[6];
+                            CUP_INFO.err_stat = cup_buf[7];
+                            CUP_INFO.soldout_stat = cup_buf[8];
+                                                        
+                            cup_connection_count = 0;
+                            cup_state = 0;
+                        }else{
+                            cup_state = 0;
+                        }
+                    }else{
+                        cup_state = 0;
+                    }
+                    break;
+                default:
+                    break;
+            }
         }else if(BOARD_ID == 1){
-            // Ice & Cup
-            // Ice ==============================================================
+            // Ice Dispenser
             switch(ice_state){
                 case 0:
                     if(temp_ch == 0x02){
@@ -2499,555 +2318,52 @@ void UART3Function(){
                     }
                     break;
             }
+        }else{
+            ;
         }
     }
 }
 
 void UART4Function(){
-    
-    static unsigned char DrinkOut_state = 0;
-    static unsigned char DrinkOut_index;
-    static short DrinkOut_data_length = 0;
-    static int DrinkOut_buf[30] = {0,};
-    int i =0;
+    static unsigned char barcode_buf[BARCODE_SIZE] = {0,};
+    static int barcode_state = 0;
+    static int barcode_index = 0;
     
     
-//    if(U4STAbits.URXDA == TRUE){
-//        DrinkOut_buf[i] = U4RXREG;
-//        i++;
-//    }
-//    
     if(U4STAbits.URXDA == TRUE){
         unsigned char temp_ch = U4RXREG;
         if(BOARD_ID == 0){       
-            
-            printf("%c", temp_ch);
-//            switch(DrinkOut_state){
-//                case 0:
-//                    if(temp_ch == 0xFF){
-//                        // match header 1
-//                        DrinkOut_state = 1;
-//                    }
-//                    break;
-//                case 1:
-//                    if(temp_ch == 0xFF){
-//                        // match header  2
-//                        DrinkOut_state = 2;
-//                     }
-//                    else{
-//                        DrinkOut_state = 0;
-//                    }
-//                    break;
-//                case 2:
-//                    if(temp_ch == 0xFD || (temp_ch == 0x00)){
-//                        // match header 3
-//                        DrinkOut_state = 3;
-//                    }
-//                    else{
-//                        DrinkOut_state = 0;
-//                    }
-//                    break;
-//                case 3:
-//                    if((temp_ch == 0x00) || (temp_ch == 0xFD)){
-//                        // match header 4
-//                        DrinkOut_state = 4;
-//                        DrinkOut_index = 0;
-//                    }
-//                    else{
-//                        DrinkOut_state = 0;
-//                    }
-//                    break;    
-//                case 4:
-//                {
-//                    DrinkOut_buf[DrinkOut_index] = temp_ch;
-//                    DrinkOut_index++;
-//                    if((DrinkOut_index >= 3) && (DrinkOut_data_length == 0)){
-//                        DrinkOut_data_length = (unsigned short)((unsigned short)(DrinkOut_buf[1]) | ((unsigned short)(DrinkOut_buf[2]) << 8));
-////                        DrinkOut_data_length = (DrinkOut_buf[1]);
-//                    }
-//                    if((DrinkOut_data_length != 0) && (DrinkOut_index > DrinkOut_data_length)){
-//                        DrinkOut_state = 5;
-//                        DrinkOut_data_length=0;
-//                    }
-//                }
-//                    break;
-//                case 5:
-//                {
-//                    if((DrinkOut_buf[3]!=0x55) || (DrinkOut_buf[4] != 0)){
-//                        //error occurred
-//                        DrinkOut_state = 0;
-//                        break;
-//                    }
-//                    switch(DrinkOut_buf[0]){
-//                        //which motor is data from
-//                        case MODULE_LEFT_DISK:
-//                            switch(DRINKOUT_INFO.module_left.Disk.command_state){
-//                                case MOTOR_WAIT_PING:{
-//                                    DRINKOUT_INFO.module_left.Disk.connection = true;
-//                                    DRINKOUT_INFO.module_left.Disk.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                case MOTOR_WAIT_SET_PROFILE:{
-//                                    DRINKOUT_INFO.module_left.Disk.isProfileSet = true;
-//                                    DRINKOUT_INFO.module_left.Disk.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;      
-//                                case MOTOR_WAIT_SET_PROFILE_ACELE:{
-//                                    DRINKOUT_INFO.module_left.Disk.isProfileAceleSet = true;
-//                                    DRINKOUT_INFO.module_left.Disk.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;            
-//                                case MOTOR_WAIT_SET_PP_GAIN:{
-//                                    DRINKOUT_INFO.module_left.Disk.isPPGainSet = true;
-//                                    DRINKOUT_INFO.module_left.Disk.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;    
-//                                case MOTOR_WAIT_SET_PD_GAIN:{
-//                                    DRINKOUT_INFO.module_left.Disk.isPDGainSet = true;
-//                                    DRINKOUT_INFO.module_left.Disk.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                case MOTOR_WAIT_ENABLE_TORQUE:{
-//                                    DRINKOUT_INFO.module_left.Disk.isTorqueOn = true;
-//                                    DRINKOUT_INFO.module_left.Disk.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                case MOTOR_WAIT_GO_POS1:{
-//                                    DRINKOUT_INFO.module_left.currentPosition = 1;
-//                                    DRINKOUT_INFO.module_left.Disk.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                case MOTOR_WAIT_GO_POS2:{
-//                                    DRINKOUT_INFO.module_left.currentPosition = 2;
-//                                    DRINKOUT_INFO.module_left.Disk.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                case MOTOR_WAIT_GO_POS3:{
-//                                    DRINKOUT_INFO.module_left.currentPosition = 3;
-//                                    DRINKOUT_INFO.module_left.Disk.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;  
-//                                case MOTOR_WAIT_READ_MOVING_STATUS:{
-//                                    DRINKOUT_INFO.module_left.Disk.movingStatus = DrinkOut_buf[5];
-//                                    DRINKOUT_INFO.module_left.Disk.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;  
-//                                case MOTOR_WAIT_READ_POSITION:{
-//                                    //(unsigned int)DrinkOut_buf[8]<<24) |
-//                                    DRINKOUT_INFO.module_left.Disk.presentPosition = (unsigned int)(((unsigned int)DrinkOut_buf[8]<<24) | ((unsigned int)DrinkOut_buf[7]<<16) | ((unsigned int)DrinkOut_buf[6]<<8) | ((unsigned int)DrinkOut_buf[5]));
-//                                    DRINKOUT_INFO.module_left.Disk.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;      
-//                                default:
-//                                    break;
-//                            }                           
-//                            break;
-//                        case MODULE_LEFT_DOOR:
-//                            switch(DRINKOUT_INFO.module_left.Door.command_state){
-//                                case MOTOR_WAIT_PING:
-//                                {
-//                                    DRINKOUT_INFO.module_left.Door.connection = true;
-//                                    DRINKOUT_INFO.module_left.Door.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                case MOTOR_WAIT_SET_PROFILE:
-//                                {
-//                                    DRINKOUT_INFO.module_left.Door.isProfileSet = true;
-//                                    DRINKOUT_INFO.module_left.Door.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;   
-//                                case MOTOR_WAIT_ENABLE_TORQUE:
-//                                {
-//                                    DRINKOUT_INFO.module_left.Door.isTorqueOn = true;
-//                                    DRINKOUT_INFO.module_left.Door.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                case MOTOR_WAIT_DOOR_OPEN:
-//                                {
-//                                    DRINKOUT_INFO.module_left.doorstate = true;
-//                                    DRINKOUT_INFO.module_left.Door.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                case MOTOR_WAIT_DOOR_CLOSE:
-//                                {
-//                                    DRINKOUT_INFO.module_left.doorstate = false;
-//                                    DRINKOUT_INFO.module_left.Door.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                case MOTOR_WAIT_READ_MOVING_STATUS:{
-//                                    DRINKOUT_INFO.module_left.Door.movingStatus = DrinkOut_buf[5];
-//                                    DRINKOUT_INFO.module_left.Door.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                case MOTOR_WAIT_READ_POSITION:{
-//                                    //(unsigned int)DrinkOut_buf[8]<<24) |
-//                                    DRINKOUT_INFO.module_left.Door.presentPosition = (unsigned int)(((unsigned int)DrinkOut_buf[8]<<24) | ((unsigned int)DrinkOut_buf[7]<<16) | ((unsigned int)DrinkOut_buf[6]<<8) | ((unsigned int)DrinkOut_buf[5]));
-//                                    DRINKOUT_INFO.module_left.Door.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                default:
-//                                    break;
-//                            }
-//                            break;
-//                        case MODULE_MIDDLE_LEFT_DISK:
-//                            switch(DRINKOUT_INFO.module_middle_left.Disk.command_state){
-//                                case MOTOR_WAIT_PING:{
-//                                    DRINKOUT_INFO.module_middle_left.Disk.connection = true;
-//                                    DRINKOUT_INFO.module_middle_left.Disk.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                case MOTOR_WAIT_SET_PROFILE:{
-//                                    DRINKOUT_INFO.module_middle_left.Disk.isProfileSet = true;
-//                                    DRINKOUT_INFO.module_middle_left.Disk.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;      
-//                                case MOTOR_WAIT_SET_PROFILE_ACELE:{
-//                                    DRINKOUT_INFO.module_middle_left.Disk.isProfileAceleSet = true;
-//                                    DRINKOUT_INFO.module_middle_left.Disk.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;            
-//                                case MOTOR_WAIT_SET_PP_GAIN:{
-//                                    DRINKOUT_INFO.module_middle_left.Disk.isPPGainSet = true;
-//                                    DRINKOUT_INFO.module_middle_left.Disk.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;    
-//                                case MOTOR_WAIT_SET_PD_GAIN:{
-//                                    DRINKOUT_INFO.module_middle_left.Disk.isPDGainSet = true;
-//                                    DRINKOUT_INFO.module_middle_left.Disk.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                case MOTOR_WAIT_ENABLE_TORQUE:{
-//                                    DRINKOUT_INFO.module_middle_left.Disk.isTorqueOn = true;
-//                                    DRINKOUT_INFO.module_middle_left.Disk.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                case MOTOR_WAIT_GO_POS1:{
-//                                    DRINKOUT_INFO.module_middle_left.currentPosition = 1;
-//                                    DRINKOUT_INFO.module_middle_left.Disk.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                case MOTOR_WAIT_GO_POS2:{
-//                                    DRINKOUT_INFO.module_middle_left.currentPosition = 2;
-//                                    DRINKOUT_INFO.module_middle_left.Disk.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                case MOTOR_WAIT_GO_POS3:{
-//                                    DRINKOUT_INFO.module_middle_left.currentPosition = 3;
-//                                    DRINKOUT_INFO.module_middle_left.Disk.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                case MOTOR_WAIT_READ_MOVING_STATUS:{
-//                                    DRINKOUT_INFO.module_middle_left.Disk.movingStatus = DrinkOut_buf[5];
-//                                    DRINKOUT_INFO.module_middle_left.Disk.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                case MOTOR_WAIT_READ_POSITION:{
-//                                    DRINKOUT_INFO.module_middle_left.Disk.presentPosition = (unsigned int)(((unsigned int)DrinkOut_buf[8]<<24) | ((unsigned int)DrinkOut_buf[7]<<16) | ((unsigned int)DrinkOut_buf[6]<<8) | ((unsigned int)DrinkOut_buf[5]));
-//                                    DRINKOUT_INFO.module_middle_left.Disk.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                default:
-//                                    break;
-//                            }                           
-//                            break;
-//                        case MODULE_MIDDLE_LEFT_DOOR:
-//                            switch(DRINKOUT_INFO.module_middle_left.Door.command_state){
-//                                case MOTOR_WAIT_PING:
-//                                {
-//                                    DRINKOUT_INFO.module_middle_left.Door.connection = true;
-//                                    DRINKOUT_INFO.module_middle_left.Door.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                case MOTOR_WAIT_SET_PROFILE:
-//                                {
-//                                    DRINKOUT_INFO.module_middle_left.Door.isProfileSet = true;
-//                                    DRINKOUT_INFO.module_middle_left.Door.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;   
-//                                case MOTOR_WAIT_ENABLE_TORQUE:
-//                                {
-//                                    DRINKOUT_INFO.module_middle_left.Door.isTorqueOn = true;
-//                                    DRINKOUT_INFO.module_middle_left.Door.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                case MOTOR_WAIT_DOOR_OPEN:
-//                                {
-//                                    DRINKOUT_INFO.module_middle_left.doorstate = true;
-//                                    DRINKOUT_INFO.module_middle_left.Door.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                case MOTOR_WAIT_DOOR_CLOSE:
-//                                {
-//                                    DRINKOUT_INFO.module_middle_left.doorstate = false;
-//                                    DRINKOUT_INFO.module_middle_left.Door.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                case MOTOR_WAIT_READ_MOVING_STATUS:{
-//                                    DRINKOUT_INFO.module_middle_left.Door.movingStatus = DrinkOut_buf[5];
-//                                    DRINKOUT_INFO.module_middle_left.Door.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                case MOTOR_WAIT_READ_POSITION:{
-//                                    DRINKOUT_INFO.module_middle_left.Door.presentPosition = (unsigned int)(((unsigned int)DrinkOut_buf[8]<<24) | ((unsigned int)DrinkOut_buf[7]<<16) | ((unsigned int)DrinkOut_buf[6]<<8) | ((unsigned int)DrinkOut_buf[5]));
-//                                    DRINKOUT_INFO.module_middle_left.Door.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                default:
-//                                    break;
-//                            }
-//                            break;
-//                        case MODULE_MIDDLE_RIGHT_DISK:
-//                            switch(DRINKOUT_INFO.module_middle_right.Disk.command_state){
-//                                case MOTOR_WAIT_PING:{
-//                                    DRINKOUT_INFO.module_middle_right.Disk.connection = true;
-//                                    DRINKOUT_INFO.module_middle_right.Disk.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                case MOTOR_WAIT_SET_PROFILE:{
-//                                    DRINKOUT_INFO.module_middle_right.Disk.isProfileSet = true;
-//                                    DRINKOUT_INFO.module_middle_right.Disk.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;      
-//                                case MOTOR_WAIT_SET_PROFILE_ACELE:{
-//                                    DRINKOUT_INFO.module_middle_right.Disk.isProfileAceleSet = true;
-//                                    DRINKOUT_INFO.module_middle_right.Disk.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;            
-//                                case MOTOR_WAIT_SET_PP_GAIN:{
-//                                    DRINKOUT_INFO.module_middle_right.Disk.isPPGainSet = true;
-//                                    DRINKOUT_INFO.module_middle_right.Disk.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;    
-//                                case MOTOR_WAIT_SET_PD_GAIN:{
-//                                    DRINKOUT_INFO.module_middle_right.Disk.isPDGainSet = true;
-//                                    DRINKOUT_INFO.module_middle_right.Disk.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                case MOTOR_WAIT_ENABLE_TORQUE:{
-//                                    DRINKOUT_INFO.module_middle_right.Disk.isTorqueOn = true;
-//                                    DRINKOUT_INFO.module_middle_right.Disk.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                case MOTOR_WAIT_GO_POS1:{
-//                                    DRINKOUT_INFO.module_middle_right.currentPosition = 1;
-//                                    DRINKOUT_INFO.module_middle_right.Disk.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                case MOTOR_WAIT_GO_POS2:{
-//                                    DRINKOUT_INFO.module_middle_right.currentPosition = 2;
-//                                    DRINKOUT_INFO.module_middle_right.Disk.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                case MOTOR_WAIT_GO_POS3:{
-//                                    DRINKOUT_INFO.module_middle_right.currentPosition = 3;
-//                                    DRINKOUT_INFO.module_middle_right.Disk.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;  
-//                                case MOTOR_WAIT_READ_MOVING_STATUS:{
-//                                    DRINKOUT_INFO.module_middle_right.Disk.movingStatus = DrinkOut_buf[5];
-//                                    DRINKOUT_INFO.module_middle_right.Disk.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;  
-//                                case MOTOR_WAIT_READ_POSITION:{
-//                                    //(unsigned int)DrinkOut_buf[8]<<24) |
-//                                    DRINKOUT_INFO.module_middle_right.Disk.presentPosition = (unsigned int)(((unsigned int)DrinkOut_buf[8]<<24) | ((unsigned int)DrinkOut_buf[7]<<16) | ((unsigned int)DrinkOut_buf[6]<<8) | ((unsigned int)DrinkOut_buf[5]));
-//                                    DRINKOUT_INFO.module_middle_right.Disk.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;      
-//                                default:
-//                                    break;
-//                            }    
-//                            break;
-//                        case MODULE_MIDDLE_RIGHT_DOOR:
-//                            switch(DRINKOUT_INFO.module_middle_right.Door.command_state){
-//                                case MOTOR_WAIT_PING:
-//                                {
-//                                    DRINKOUT_INFO.module_middle_right.Door.connection = true;
-//                                    DRINKOUT_INFO.module_middle_right.Door.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                case MOTOR_WAIT_SET_PROFILE:
-//                                {
-//                                    DRINKOUT_INFO.module_middle_right.Door.isProfileSet = true;
-//                                    DRINKOUT_INFO.module_middle_right.Door.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;   
-//                                case MOTOR_WAIT_ENABLE_TORQUE:
-//                                {
-//                                    DRINKOUT_INFO.module_middle_right.Door.isTorqueOn = true;
-//                                    DRINKOUT_INFO.module_middle_right.Door.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                case MOTOR_WAIT_DOOR_OPEN:
-//                                {
-//                                    DRINKOUT_INFO.module_middle_right.doorstate = true;
-//                                    DRINKOUT_INFO.module_middle_right.Door.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                case MOTOR_WAIT_DOOR_CLOSE:
-//                                {
-//                                    DRINKOUT_INFO.module_middle_right.doorstate = false;
-//                                    DRINKOUT_INFO.module_middle_right.Door.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                case MOTOR_WAIT_READ_MOVING_STATUS:{
-//                                    DRINKOUT_INFO.module_middle_right.Door.movingStatus = DrinkOut_buf[5];
-//                                    DRINKOUT_INFO.module_middle_right.Door.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                case MOTOR_WAIT_READ_POSITION:{
-//                                    //(unsigned int)DrinkOut_buf[8]<<24) |
-//                                    DRINKOUT_INFO.module_middle_right.Door.presentPosition = (unsigned int)(((unsigned int)DrinkOut_buf[8]<<24) | ((unsigned int)DrinkOut_buf[7]<<16) | ((unsigned int)DrinkOut_buf[6]<<8) | ((unsigned int)DrinkOut_buf[5]));
-//                                    DRINKOUT_INFO.module_middle_right.Door.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                default:
-//                                    break;
-//                            }
-//                            break;
-//                        case MODULE_RIGHT_DISK:
-//                            switch(DRINKOUT_INFO.module_right.Disk.command_state){
-//                                case MOTOR_WAIT_PING:{
-//                                    DRINKOUT_INFO.module_right.Disk.connection = true;
-//                                    DRINKOUT_INFO.module_right.Disk.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                case MOTOR_WAIT_SET_PROFILE:{
-//                                    DRINKOUT_INFO.module_right.Disk.isProfileSet = true;
-//                                    DRINKOUT_INFO.module_right.Disk.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;      
-//                                case MOTOR_WAIT_SET_PROFILE_ACELE:{
-//                                    DRINKOUT_INFO.module_right.Disk.isProfileAceleSet = true;
-//                                    DRINKOUT_INFO.module_right.Disk.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;            
-//                                case MOTOR_WAIT_SET_PP_GAIN:{
-//                                    DRINKOUT_INFO.module_right.Disk.isPPGainSet = true;
-//                                    DRINKOUT_INFO.module_right.Disk.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;    
-//                                case MOTOR_WAIT_SET_PD_GAIN:{
-//                                    DRINKOUT_INFO.module_right.Disk.isPDGainSet = true;
-//                                    DRINKOUT_INFO.module_right.Disk.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                case MOTOR_WAIT_ENABLE_TORQUE:{
-//                                    DRINKOUT_INFO.module_right.Disk.isTorqueOn = true;
-//                                    DRINKOUT_INFO.module_right.Disk.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                case MOTOR_WAIT_GO_POS1:{
-//                                    DRINKOUT_INFO.module_right.currentPosition = 1;
-//                                    DRINKOUT_INFO.module_right.Disk.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                case MOTOR_WAIT_GO_POS2:{
-//                                    DRINKOUT_INFO.module_right.currentPosition = 2;
-//                                    DRINKOUT_INFO.module_right.Disk.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                case MOTOR_WAIT_GO_POS3:{
-//                                    DRINKOUT_INFO.module_right.currentPosition = 3;
-//                                    DRINKOUT_INFO.module_right.Disk.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;  
-//                                case MOTOR_WAIT_READ_MOVING_STATUS:{
-//                                    DRINKOUT_INFO.module_right.Disk.movingStatus = DrinkOut_buf[5];
-//                                    DRINKOUT_INFO.module_right.Disk.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;  
-//                                case MOTOR_WAIT_READ_POSITION:{
-//                                    //(unsigned int)DrinkOut_buf[8]<<24) |
-//                                    DRINKOUT_INFO.module_right.Disk.presentPosition = (unsigned int)(((unsigned int)DrinkOut_buf[8]<<24) | ((unsigned int)DrinkOut_buf[7]<<16) | ((unsigned int)DrinkOut_buf[6]<<8) | ((unsigned int)DrinkOut_buf[5]));
-//                                    DRINKOUT_INFO.module_right.Disk.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;      
-//                                default:
-//                                    break;
-//                            }                        
-//                            break;    
-//                        case MODULE_RIGHT_DOOR:
-//                            switch(DRINKOUT_INFO.module_right.Door.command_state){
-//                                case MOTOR_WAIT_PING:
-//                                {
-//                                    DRINKOUT_INFO.module_right.Door.connection = true;
-//                                    DRINKOUT_INFO.module_right.Door.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                case MOTOR_WAIT_SET_PROFILE:
-//                                {
-//                                    DRINKOUT_INFO.module_right.Door.isProfileSet = true;
-//                                    DRINKOUT_INFO.module_right.Door.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;   
-//                                case MOTOR_WAIT_ENABLE_TORQUE:
-//                                {
-//                                    DRINKOUT_INFO.module_right.Door.isTorqueOn = true;
-//                                    DRINKOUT_INFO.module_right.Door.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                case MOTOR_WAIT_DOOR_OPEN:
-//                                {
-//                                    DRINKOUT_INFO.module_right.doorstate = true;
-//                                    DRINKOUT_INFO.module_right.Door.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                case MOTOR_WAIT_DOOR_CLOSE:
-//                                {
-//                                    DRINKOUT_INFO.module_right.doorstate = false;
-//                                    DRINKOUT_INFO.module_right.Door.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                case MOTOR_WAIT_READ_MOVING_STATUS:{
-//                                    DRINKOUT_INFO.module_right.Door.movingStatus = DrinkOut_buf[5];
-//                                    DRINKOUT_INFO.module_right.Door.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                case MOTOR_WAIT_READ_POSITION:{
-//                                    //(unsigned int)DrinkOut_buf[8]<<24) |
-//                                    DRINKOUT_INFO.module_right.Door.presentPosition = (unsigned int)(((unsigned int)DrinkOut_buf[8]<<24) | ((unsigned int)DrinkOut_buf[7]<<16) | ((unsigned int)DrinkOut_buf[6]<<8) | ((unsigned int)DrinkOut_buf[5]));
-//                                    DRINKOUT_INFO.module_right.Door.command_state = MOTOR_IDLE;
-//                                }
-//                                    break;
-//                                default:
-//                                    break;
-//                            }
-//                            break;
-//                        case 9:{
-//                            if(ICE_VALVE.motor.command_state == MOTOR_WAIT_PING){
-//                                ICE_VALVE.motor.connection = true;
-//                                ICE_VALVE.motor.command_state = MOTOR_IDLE;
-//                            }
-//                            else if(ICE_VALVE.motor.command_state == MOTOR_WAIT_SET_PROFILE){
-//                                ICE_VALVE.motor.isProfileSet = true;
-//                                ICE_VALVE.motor.command_state = MOTOR_IDLE;
-//                            }
-//                            else if(ICE_VALVE.motor.command_state == MOTOR_WAIT_ENABLE_TORQUE){
-//                                ICE_VALVE.motor.isTorqueOn = true;
-//                                ICE_VALVE.motor.command_state = MOTOR_IDLE;
-//                            }
-//                            else if(ICE_VALVE.motor.command_state == MOTOR_WAIT_DOOR_OPEN){
-//                                ICE_VALVE.lock_state = false;
-//                                ICE_VALVE.motor.command_state = MOTOR_IDLE;
-//                            }
-//                            else if(ICE_VALVE.motor.command_state == MOTOR_WAIT_DOOR_CLOSE){
-//                                ICE_VALVE.lock_state = true;
-//                                ICE_VALVE.motor.command_state = MOTOR_IDLE;
-//                            }
-//                            
-//                        }
-//                            break;
-//                        default:
-//                            break;
-//                    }
-//                    DrinkOut_state = 0;
-//                }                    
-//                break;
-//          
-//                default:
-//                    break;            
-//            }
+            // Barcode
+            switch(barcode_state){
+                case 0:
+                    if(temp_ch == 'a'){
+                        // match STX
+                        barcode_state = 1;
+                        barcode_index = 0;
+                    }
+                    break;
+                case 1:{
+                    if((temp_ch != 'z') && barcode_index < BARCODE_SIZE){
+                        barcode_buf[barcode_index] = temp_ch;
+                        barcode_index++;
+                        
+                    }else{
+                        int i;
+                        for(i =barcode_index; i<BARCODE_SIZE; i++){
+                            barcode_buf[i] = 0;
+                        }
+                        
+                        int idx = 0;
+                        for(idx=0; idx<BARCODE_SIZE; idx++){
+                            BARCODE_DATA[idx] = barcode_buf[idx];
+                        }
+                        barcode_state = 0;
+                    }
+                }
+                    break;
+                default:
+                    break;
+            }
         }
     }
 }

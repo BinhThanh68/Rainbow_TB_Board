@@ -240,6 +240,10 @@ void CUP_RequestSoldOut(){
 
 
 
+
+
+
+
 void DRINKOUT_Go(unsigned char ID, unsigned char goal_pos_index){
     unsigned char send_data[16];
   
@@ -462,7 +466,8 @@ void DRINKOUT_Go(unsigned char ID, unsigned char goal_pos_index){
 //    }
     
 //    WriteUART4(send_data, 16);
-    WriteUART3(send_data, 10);
+//    WriteUART3(send_data, 10);
+    WriteUART2(send_data, 10);
     Nop();
 }
 
@@ -489,7 +494,8 @@ void DRINKOUT_Spin(unsigned char ID, int goal_pos){
     send_data[15] = (Check_bytes>>8)&0xFF; //CRC2
     
     //    WriteUART4(send_data, 16);
-    WriteUART3(send_data, 16);
+//    WriteUART3(send_data, 16);
+    WriteUART2(send_data, 16);
     Nop();
 }
 
@@ -515,7 +521,8 @@ void DRINKOUT_DoorWork(unsigned char ID, int goal_pos){
     send_data[15] = (Check_bytes>>8)&0xFF; //CRC2
     
     //    WriteUART4(send_data, 16);
-    WriteUART3(send_data, 16);
+//    WriteUART3(send_data, 16);
+    WriteUART2(send_data, 16);
     Nop();
 }
 
@@ -602,7 +609,8 @@ void DRINKOUT_TurnTorque(unsigned char ID, unsigned char ON_OFF){
     }
   
 //    WriteUART4(send_data, 13);
-    WriteUART3(send_data, 13);
+//    WriteUART3(send_data, 13);
+    WriteUART2(send_data, 13);
 }
 
 void DRINKOUT_CheckConnection(unsigned char ID){
@@ -642,7 +650,8 @@ void DRINKOUT_CheckConnection(unsigned char ID){
     }
     
 //    WriteUART4(send_data, 10);
-    WriteUART3(send_data, 10);
+//    WriteUART3(send_data, 10);
+    WriteUART2(send_data, 10);
 }
 
 void DRINKOUT_SetProfile(unsigned char ID){
@@ -732,7 +741,8 @@ void DRINKOUT_SetProfile(unsigned char ID){
     }
       
 //    WriteUART4(send_data, 16);
-    WriteUART3(send_data, 16);
+//    WriteUART3(send_data, 16);
+    WriteUART2(send_data, 16);
 }
 
 
@@ -771,7 +781,8 @@ void DRINKOUT_SetProfile_Acele(unsigned char ID){
     }
    
 //    WriteUART4(send_data, 16);
-    WriteUART3(send_data, 16);
+//    WriteUART3(send_data, 16);
+    WriteUART2(send_data, 14);
 }
 
 void DRINKOUT_SetPPGain(unsigned char ID){
@@ -806,7 +817,8 @@ void DRINKOUT_SetPPGain(unsigned char ID){
         send_data[13] = 0x3D; //CRC2
     }
 //    WriteUART4(send_data, 14);
-    WriteUART3(send_data, 14);
+//    WriteUART3(send_data, 14);
+    WriteUART2(send_data, 14);
 }
 
 
@@ -842,7 +854,8 @@ void DRINKOUT_SetPDGain(unsigned char ID){
         send_data[13] = 0xED; //CRC2
     } 
 //    WriteUART4(send_data, 14);
-    WriteUART3(send_data, 14);
+//    WriteUART3(send_data, 14);
+    WriteUART2(send_data, 14);
 }
 
 void DRINKOUT_CheckMovingStatus(unsigned char ID){
@@ -886,7 +899,8 @@ void DRINKOUT_CheckMovingStatus(unsigned char ID){
     }
     
 //    WriteUART4(send_data, 14);
-    WriteUART3(send_data, 14);
+//    WriteUART3(send_data, 14);
+    WriteUART2(send_data, 14);
 }
 
 void DRINKOUT_ReadPosition(unsigned char ID){
@@ -929,7 +943,8 @@ void DRINKOUT_ReadPosition(unsigned char ID){
         send_data[13] = 0x85; //CRC2    
     } 
 //    WriteUART4(send_data, 14);
-    WriteUART3(send_data, 14);
+//    WriteUART3(send_data, 14);
+    WriteUART2(send_data, 14);
 }
 
 long DRINK_GetWeight(){
@@ -967,7 +982,8 @@ void ICE_Valve_Set_Lock(unsigned char lock){
         send_data[15] = 0x01; //CRC2
     }
       
-    WriteUART4(send_data, 16);
+//    WriteUART4(send_data, 16);
+    WriteUART2(send_data, 16);
 }
 
 void ICE_Valve_Check_Connection(){
@@ -984,7 +1000,8 @@ void ICE_Valve_Check_Connection(){
     send_data[8] = 0x1A; //address1
     send_data[9] = 0x6E; //address1
    
-    WriteUART4(send_data, 10);
+//    WriteUART4(send_data, 10);
+    WriteUART2(send_data, 10);
 }
 
 void ICE_Valve_Set_Profile(){
@@ -1004,7 +1021,8 @@ void ICE_Valve_Set_Profile(){
     send_data[11] = 0x58; //CRC1
     send_data[12] = 0xEE; //CRC2
       
-    WriteUART4(send_data, 13);
+//    WriteUART4(send_data, 13);
+    WriteUART2(send_data, 13);
 }
 
 
@@ -1025,7 +1043,8 @@ void ICE_Valve_Set_Torque(){
     send_data[11] = 0x58; //CRC1
     send_data[12] = 0xEE; //CRC2
       
-    WriteUART4(send_data, 13);
+//    WriteUART4(send_data, 13);
+    WriteUART2(send_data, 13);
 }
 
 

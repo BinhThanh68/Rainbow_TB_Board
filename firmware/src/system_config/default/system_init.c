@@ -360,40 +360,6 @@ TCPIP_NETWORK_CONFIG __attribute__((unused))  TCPIP_HOSTS_CONFIGURATION[] =
     },
 };
 
-TCPIP_NETWORK_CONFIG __attribute__((unused))  TCPIP_HOSTS_CONFIGURATION_0[] =
-{
-/*** Network Configuration Index 0 ***/
-    {
-        TCPIP_NETWORK_DEFAULT_INTERFACE_NAME_IDX0,       // interface
-        TCPIP_NETWORK_DEFAULT_HOST_NAME_IDX0,            // hostName
-        TCPIP_NETWORK_DEFAULT_MAC_ADDR_IDX0,             // macAddr
-        "192.168.100.110",           // ipAddr
-        TCPIP_NETWORK_DEFAULT_IP_MASK_IDX0,              // ipMask
-        TCPIP_NETWORK_DEFAULT_GATEWAY_IDX0,              // gateway
-        TCPIP_NETWORK_DEFAULT_DNS_IDX0,                  // priDNS
-        TCPIP_NETWORK_DEFAULT_SECOND_DNS_IDX0,           // secondDNS
-        TCPIP_NETWORK_DEFAULT_POWER_MODE_IDX0,           // powerMode
-        TCPIP_NETWORK_DEFAULT_INTERFACE_FLAGS_IDX0,      // startFlags
-       &TCPIP_NETWORK_DEFAULT_MAC_DRIVER_IDX0,           // pMacObject
-    },
-};
-TCPIP_NETWORK_CONFIG __attribute__((unused))  TCPIP_HOSTS_CONFIGURATION_1[] =
-{
-/*** Network Configuration Index 0 ***/
-    {
-        TCPIP_NETWORK_DEFAULT_INTERFACE_NAME_IDX0,       // interface
-        TCPIP_NETWORK_DEFAULT_HOST_NAME_IDX0,            // hostName
-        TCPIP_NETWORK_DEFAULT_MAC_ADDR_IDX0,             // macAddr
-        "192.168.100.111",           // ipAddr
-        TCPIP_NETWORK_DEFAULT_IP_MASK_IDX0,              // ipMask
-        TCPIP_NETWORK_DEFAULT_GATEWAY_IDX0,              // gateway
-        TCPIP_NETWORK_DEFAULT_DNS_IDX0,                  // priDNS
-        TCPIP_NETWORK_DEFAULT_SECOND_DNS_IDX0,           // secondDNS
-        TCPIP_NETWORK_DEFAULT_POWER_MODE_IDX0,           // powerMode
-        TCPIP_NETWORK_DEFAULT_INTERFACE_FLAGS_IDX0,      // startFlags
-       &TCPIP_NETWORK_DEFAULT_MAC_DRIVER_IDX0,           // pMacObject
-    },
-};
 
 const TCPIP_STACK_MODULE_CONFIG TCPIP_STACK_MODULE_CONFIG_TBL [] =
 {
@@ -435,18 +401,31 @@ extern int BOARD_ID;
 SYS_MODULE_OBJ TCPIP_STACK_Init()
 {
     TCPIP_STACK_INIT    tcpipInit;
-
     tcpipInit.moduleInit.sys.powerState = SYS_MODULE_POWER_RUN_FULL;
+    
+    char tempAddr[128];// = "192.168.100.110";
+    char tempGate[128];// = "192.168.100.1";
+    
     if(BOARD_ID == 0){
-        tcpipInit.pNetConf = TCPIP_HOSTS_CONFIGURATION_0;
-        tcpipInit.nNets = sizeof (TCPIP_HOSTS_CONFIGURATION_0) / sizeof (*TCPIP_HOSTS_CONFIGURATION_0);
+        sprintf(tempAddr, "192.168.100.110");
+        sprintf(tempGate, "192.168.100.1");
     }else if(BOARD_ID == 1){
-        tcpipInit.pNetConf = TCPIP_HOSTS_CONFIGURATION_1;
-        tcpipInit.nNets = sizeof (TCPIP_HOSTS_CONFIGURATION_1) / sizeof (*TCPIP_HOSTS_CONFIGURATION_1);
-    }else{
-        tcpipInit.pNetConf = TCPIP_HOSTS_CONFIGURATION;
-        tcpipInit.nNets = sizeof (TCPIP_HOSTS_CONFIGURATION) / sizeof (*TCPIP_HOSTS_CONFIGURATION);
+        sprintf(tempAddr, "192.168.100.111");
+        sprintf(tempGate, "192.168.100.1");
+    }else if(BOARD_ID == 2){
+        sprintf(tempAddr, "192.168.100.112");
+        sprintf(tempGate, "192.168.100.1");
+    }else if(BOARD_ID == 3){
+        sprintf(tempAddr, "192.168.100.113");
+        sprintf(tempGate, "192.168.100.1");
     }
+    
+    TCPIP_HOSTS_CONFIGURATION[0].ipAddr = tempAddr;
+    TCPIP_HOSTS_CONFIGURATION[0].gateway = tempGate;
+    
+    tcpipInit.pNetConf = TCPIP_HOSTS_CONFIGURATION;
+    tcpipInit.nNets = sizeof (TCPIP_HOSTS_CONFIGURATION) / sizeof (*TCPIP_HOSTS_CONFIGURATION);
+    
     
     tcpipInit.pModConfig = TCPIP_STACK_MODULE_CONFIG_TBL;
     tcpipInit.nModules = sizeof (TCPIP_STACK_MODULE_CONFIG_TBL) / sizeof (*TCPIP_STACK_MODULE_CONFIG_TBL);
@@ -486,7 +465,7 @@ void SYS_Initialize ( void* data )
     
     /* Initialize Drivers */
     /* Initialize CAN Driver 0 */
-    DRV_CAN0_Initialize();
+//    DRV_CAN0_Initialize();
 
 
     /* Initialize the MIIM Driver */

@@ -68,14 +68,34 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 // Section: Main Entry Point
 // *****************************************************************************
 // *****************************************************************************
-extern void InitNetworkIP();
+
+
+// Board ID 0 (192.168.100.110)
+    // Outlet Motor * 8 --> UART2
+    // Cup Dispenser --> UART3
+    // Bardcode --> UART4
+    // Outlet Sensor (Din) * 4
+    // Relay (Dout) * 2
+
+// Board ID 1 (192.168.100.111)
+    // Ice Valve --> UART2
+    // Ice Dispenser --> UART3
+    // Water Leveler
+
+// Board ID 2 (192.168.100.112)
+    // Load Cell (Digital) * 2
+    // Tea Leveler (Din) * 4
+    
+// Board ID 3 (192.168.100.113)
+    // Remote Controller (LED * 3, Button * 4)
+
+
 int BOARD_ID = 0;
 
 int main ( void )
 {
     /* Initialize all MPLAB Harmony modules, including application(s). */        
     SYS_Initialize ( NULL );
-
 
     while ( true )
     {
