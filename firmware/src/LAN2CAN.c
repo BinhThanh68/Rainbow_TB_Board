@@ -575,14 +575,12 @@ int LAN2CAN_LANDataParsing(void) {
                             DRINKOUT_ReadPosition(para1);
                             break;
                         case 3:
-                            SetMotorCommandState(para1, para2);
-                            DRINKOUT_Go_by_value((para1&0xFF), para2);
+                            //SetMotorCommandState(para1, para2);
+                            DRINKOUT_Spin(para1, para2);
                             break;
                         case 4:
-                            DRINKOUT_CloseAll();
-                            break;
-                        case 5:
-                            DRINKOUT_OpenAll();
+                            //SetMotorCommandState(para1, para2);
+                            DRINKOUT_DoorWork(para1, para2);
                             break;
                     }
                 }else if(target==2){
