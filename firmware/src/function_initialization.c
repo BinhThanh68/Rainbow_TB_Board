@@ -54,6 +54,21 @@ void INIT_PINS(void){
         TRISBbits.TRISB3 = 1;   // Digital In 1
         TRISBbits.TRISB4 = 1;   // Digital In 2 
         TRISBbits.TRISB5 = 1;   // Digital In 3
+    }else if(BOARD_ID==3){
+        //remote controller
+        TRISBbits.TRISB2 = 1;   // Digital In 0
+        TRISBbits.TRISB3 = 1;   // Digital In 1
+        TRISBbits.TRISB4 = 1;   // Digital In 2 
+        TRISBbits.TRISB5 = 1;   // Digital In 3
+        
+        //pull-up if does not have external pull-up
+        CNPUBbits.CNPUB4 = 1;
+        CNPUBbits.CNPUB4 = 1;
+        
+        TRISGbits.TRISG8 = 0;   // Digital In 0
+        TRISFbits.TRISF5 = 0;   // Digital In 1
+        TRISGbits.TRISG9 = 0;   // Digital In 2 
+        TRISGbits.TRISG6 = 0;   // Digital In 3
     }
     
     

@@ -211,7 +211,7 @@ void CUP_RequestStatus(){
     send_data[3] = 0x03;
     send_data[4] = 0x44;
 
-    WriteUART2(send_data, 5);
+    WriteUART3(send_data, 5);
 }
 
 void CUP_RequestCupOut(int port_num, int output_num){
@@ -224,7 +224,7 @@ void CUP_RequestCupOut(int port_num, int output_num){
     send_data[5] = 0x03;
     send_data[6] = CalculateBCC(&(send_data[1]), 5);
     
-    WriteUART2(send_data, 7);
+    WriteUART3(send_data, 7);
 }
 
 void CUP_RequestSoldOut(){
@@ -235,7 +235,7 @@ void CUP_RequestSoldOut(){
     send_data[3] = 0x00;
     send_data[4] = 0x03;
     send_data[5] = CalculateBCC(&(send_data[1]), 4);    
-    WriteUART2(send_data, 6);
+    WriteUART3(send_data, 6);
 }
 
 

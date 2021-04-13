@@ -119,10 +119,7 @@ typedef struct
 typedef struct
 {
     unsigned char connection;
-    DRINKOUT_ONE_MODULE module_1;
-    DRINKOUT_ONE_MODULE module_2;
-    DRINKOUT_ONE_MODULE module_3;
-    DRINKOUT_ONE_MODULE module_4;
+    DRINKOUT_ONE_MODULE module[4];
 } ST_DRINKOUT_DATA;
 
 typedef enum

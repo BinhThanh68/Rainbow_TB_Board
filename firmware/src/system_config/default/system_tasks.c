@@ -69,7 +69,7 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 */
 
 
-
+int test_motor =0;
 void SYS_Tasks ( void )
 {
     /* Maintain system services */
@@ -85,6 +85,19 @@ void SYS_Tasks ( void )
 
     /* Maintain the application's state machine. */
     LAN2CAN_Tasks();
+
+    //just for testing remote controller
+//        PORTGbits.RG8 = 0;
+//        PORTFbits.RF5 = 0;
+//        PORTGbits.RG9 = 0;
+//        PORTGbits.RG6 = 0;
+//
+//    PORTFbits.RF5 = !PORTBbits.RB5;
+//    PORTGbits.RG6 = !PORTBbits.RB3;
+//    PORTGbits.RG8 = !PORTBbits.RB4;      
+//    
+
+
     
     
     

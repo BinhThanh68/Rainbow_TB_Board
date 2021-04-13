@@ -29,6 +29,7 @@ ST_DRINKOUT_DATA DRINKOUT_INFO;
 ST_ICE_VALVE_DATA ICE_VALVE;
 ST_ROMOTE_CONTROLER_DATA REMOTE_CONTROLLER;
 
+unsigned char BARCODE_CNT = 0;
 unsigned char BARCODE_DATA[BARCODE_SIZE] = {0,};
 int BARCODE_LOCK = 0;
 
@@ -108,8 +109,9 @@ void LAN2CAN_Initialize(void) {
        LOADCELL_INFO.threshold = 160;
        
     }else if(BOARD_ID == 3){
-        // Remote Controller (LED * 3, Button * 4)
-        
+       PORTBbits.RB2 =1;
+       PORTBbits.RB3 =1;
+       PORTBbits.RB4 =1;
     }
 }
 
@@ -139,7 +141,7 @@ void LAN2CAN_Tasks(void) {
         case LAN2CAN_STATE_INIT:
         {
             // Reset peripheral device
-//            LAN2CAN_Reset();
+            LAN2CAN_Reset();
 
             // Wait for the TCPIP Stack to become initialized                    
             if (TCPIP_STACK_Status(sysObj.tcpip) == SYS_STATUS_READY) {
@@ -345,13 +347,6 @@ int LAN2CAN_LANDataParsing(void) {
 
         switch (gv.lanData.msgFromClient[5]) {
                 // CAN Data packet handling
-                UINT16_UNION canMessageSize;
-                uint16_t canMessageIndex = 0;
-            
-                int target = gv.lanData.msgFromClient[6];
-                int command = gv.lanData.msgFromClient[7];
-                int para1 = ((int)(gv.lanData.msgFromClient[8]) | (int)(gv.lanData.msgFromClient[9]<<8) | (int)(gv.lanData.msgFromClient[10]<<16) | (int)(gv.lanData.msgFromClient[11]<<24));
-                int para2 = ((int)(gv.lanData.msgFromClient[12]) | (int)(gv.lanData.msgFromClient[13]<<8) | (int)(gv.lanData.msgFromClient[14]<<16) | (int)(gv.lanData.msgFromClient[15]<<24));
                 
             case 0x10:
             {
@@ -361,27 +356,45 @@ int LAN2CAN_LANDataParsing(void) {
                 // Bardcode --> UART4
                 // Outlet Sensor (Din) * 4
                 // 2. Relay (Dout) * 2
+            
+                int target = gv.lanData.msgFromClient[6];
+                int command = gv.lanData.msgFromClient[7];
+                int para1 = ((int)(gv.lanData.msgFromClient[8]) | (int)(gv.lanData.msgFromClient[9]<<8) | (int)(gv.lanData.msgFromClient[10]<<16) | (int)(gv.lanData.msgFromClient[11]<<24));
+                int para2 = ((int)(gv.lanData.msgFromClient[12]) | (int)(gv.lanData.msgFromClient[13]<<8) | (int)(gv.lanData.msgFromClient[14]<<16) | (int)(gv.lanData.msgFromClient[15]<<24));
+                
                 
                 if(target == 0){
                     // Outlet Motor
                     switch(command){
+                    case 0:
+                        DRINKOUT_Spin(para1, para2);
+//                        DRINKOUT_DoorWork(para1, para2);
+                        break;
                     case 1:
                         //para2 = 6 to check moving status
-                        SetMotorCommandState(para1, para2);
+                        SetMotorCommandState(para1, MOTOR_WAIT_READ_MOVING_STATUS);
                         DRINKOUT_CheckMovingStatus(para1);
                         break;
                     case 2:
                         //para2 = 7 to read position
-                        SetMotorCommandState(para1, para2);
-                        DRINKOUT_ReadPosition(para1);
-                        break;
+                        SetMotorCommandState(para1, MOTOR_WAIT_READ_POSITION);
+                        DRINKOUT_ReadPosition(para1);                        
+                        break;                        
                     case 3:
-                        //SetMotorCommandState(para1, para2);
-                        DRINKOUT_Spin(para1, para2);
+                        SetMotorCommandState(para1, MOTOR_WAIT_SET_PROFILE);
+                        DRINKOUT_SetProfile(para1);
                         break;
                     case 4:
-                        //SetMotorCommandState(para1, para2);
-                        DRINKOUT_DoorWork(para1, para2);
+                        SetMotorCommandState(para1, MOTOR_WAIT_SET_PP_GAIN);
+                        DRINKOUT_SetPPGain(para1);
+                        break;
+                    case 5:
+                        SetMotorCommandState(para1, MOTOR_WAIT_SET_PD_GAIN);
+                        DRINKOUT_SetPDGain(para1);
+                        break;
+                    case 6:
+                        SetMotorCommandState(para1, MOTOR_WAIT_ENABLE_TORQUE);
+                        DRINKOUT_TurnTorque(para1, 1);
                         break;
                     }
                 }else if(target == 1){
@@ -407,6 +420,12 @@ int LAN2CAN_LANDataParsing(void) {
                 // 0. Ice Valve --> UART2
                 // 1. Ice Dispenser --> UART3
                 // Water Leveler
+                
+                int target = gv.lanData.msgFromClient[6];
+                int command = gv.lanData.msgFromClient[7];
+                int para1 = ((int)(gv.lanData.msgFromClient[8]) | (int)(gv.lanData.msgFromClient[9]<<8) | (int)(gv.lanData.msgFromClient[10]<<16) | (int)(gv.lanData.msgFromClient[11]<<24));
+                int para2 = ((int)(gv.lanData.msgFromClient[12]) | (int)(gv.lanData.msgFromClient[13]<<8) | (int)(gv.lanData.msgFromClient[14]<<16) | (int)(gv.lanData.msgFromClient[15]<<24));
+
                 
                 if(target == 0){
                     // Ice Valve
@@ -453,6 +472,12 @@ int LAN2CAN_LANDataParsing(void) {
                 // Load Cell (Digital) * 2
                 // Tea Leveler (Din) * 4
                 
+                int target = gv.lanData.msgFromClient[6];
+                int command = gv.lanData.msgFromClient[7];
+                int para1 = ((int)(gv.lanData.msgFromClient[8]) | (int)(gv.lanData.msgFromClient[9]<<8) | (int)(gv.lanData.msgFromClient[10]<<16) | (int)(gv.lanData.msgFromClient[11]<<24));
+                int para2 = ((int)(gv.lanData.msgFromClient[12]) | (int)(gv.lanData.msgFromClient[13]<<8) | (int)(gv.lanData.msgFromClient[14]<<16) | (int)(gv.lanData.msgFromClient[15]<<24));
+
+                
                 if(target == 0){
                     //load cell
                     switch(command){
@@ -494,6 +519,12 @@ int LAN2CAN_LANDataParsing(void) {
             {
                 // Board ID 3 (192.168.100.113)
                 // Remote Controller (LED * 3, Button * 4)
+                
+                int target = gv.lanData.msgFromClient[6];
+                int command = gv.lanData.msgFromClient[7];
+                int para1 = ((int)(gv.lanData.msgFromClient[8]) | (int)(gv.lanData.msgFromClient[9]<<8) | (int)(gv.lanData.msgFromClient[10]<<16) | (int)(gv.lanData.msgFromClient[11]<<24));
+                int para2 = ((int)(gv.lanData.msgFromClient[12]) | (int)(gv.lanData.msgFromClient[13]<<8) | (int)(gv.lanData.msgFromClient[14]<<16) | (int)(gv.lanData.msgFromClient[15]<<24));
+
                 
                 if(target == 0){
                     RemoteController_LED_Operation(para1, para2);
@@ -583,88 +614,28 @@ int LAN2CAN_SendToPC(void) {
         gv.lanData.msgToClient[currentIndex] = 0xF0;       currentIndex++;
         
         // Outlet Motor (19*4 = 76byte)
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_1.cupPresent;                            currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_1.Disk.connection;                       currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_1.Disk.isTorqueOn;                       currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_1.Disk.isProfileSet;                     currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_1.Disk.isPPGainSet;                      currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_1.Disk.isPDGainSet;                      currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_1.Disk.movingStatus;                     currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_1.Disk.presentPosition)&0xFF;           currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_1.Disk.presentPosition >> 8)&0xFF;      currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_1.Disk.presentPosition >>16)&0xFF;      currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_1.Disk.presentPosition >> 24)&0xFF;     currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_1.Door.connection;                       currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_1.Door.isTorqueOn;                       currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_1.Door.isProfileSet;                     currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_1.Door.movingStatus;                     currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_1.Door.presentPosition)&0xFF;           currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_1.Door.presentPosition >> 8)&0xFF;      currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_1.Door.presentPosition >>16)&0xFF;      currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_1.Door.presentPosition >> 24)&0xFF;     currentIndex++;
-        
-        
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_2.cupPresent;                            currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_2.Disk.connection;                       currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_2.Disk.isTorqueOn;                       currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_2.Disk.isProfileSet;                     currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_2.Disk.isPPGainSet;                      currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_2.Disk.isPDGainSet;                      currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_2.Disk.movingStatus;                     currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_2.Disk.presentPosition)&0xFF;           currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_2.Disk.presentPosition >> 8)&0xFF;      currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_2.Disk.presentPosition >>16)&0xFF;      currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_2.Disk.presentPosition >> 24)&0xFF;     currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_2.Door.connection;                       currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_2.Door.isTorqueOn;                       currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_2.Door.isProfileSet;                     currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_2.Door.movingStatus;                     currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_2.Door.presentPosition)&0xFF;           currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_2.Door.presentPosition >> 8)&0xFF;      currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_2.Door.presentPosition >>16)&0xFF;      currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_2.Door.presentPosition >> 24)&0xFF;     currentIndex++;
-        
-        
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_3.cupPresent;                            currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_3.Disk.connection;                       currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_3.Disk.isTorqueOn;                       currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_3.Disk.isProfileSet;                     currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_3.Disk.isPPGainSet;                      currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_3.Disk.isPDGainSet;                      currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_3.Disk.movingStatus;                     currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_3.Disk.presentPosition)&0xFF;           currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_3.Disk.presentPosition >> 8)&0xFF;      currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_3.Disk.presentPosition >>16)&0xFF;      currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_3.Disk.presentPosition >> 24)&0xFF;     currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_3.Door.connection;                       currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_3.Door.isTorqueOn;                       currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_3.Door.isProfileSet;                     currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_3.Door.movingStatus;                     currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_3.Door.presentPosition)&0xFF;           currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_3.Door.presentPosition >> 8)&0xFF;      currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_3.Door.presentPosition >>16)&0xFF;      currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_3.Door.presentPosition >> 24)&0xFF;     currentIndex++;
-        
-        
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_4.cupPresent;                            currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_4.Disk.connection;                       currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_4.Disk.isTorqueOn;                       currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_4.Disk.isProfileSet;                     currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_4.Disk.isPPGainSet;                      currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_4.Disk.isPDGainSet;                      currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_4.Disk.movingStatus;                     currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_4.Disk.presentPosition)&0xFF;           currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_4.Disk.presentPosition >> 8)&0xFF;      currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_4.Disk.presentPosition >>16)&0xFF;      currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_4.Disk.presentPosition >> 24)&0xFF;     currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_4.Door.connection;                       currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_4.Door.isTorqueOn;                       currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_4.Door.isProfileSet;                     currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module_4.Door.movingStatus;                     currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_4.Door.presentPosition)&0xFF;           currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_4.Door.presentPosition >> 8)&0xFF;      currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_4.Door.presentPosition >>16)&0xFF;      currentIndex++;
-        gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module_4.Door.presentPosition >> 24)&0xFF;     currentIndex++;
+        int module_cnt = 0;
+        for(module_cnt = 0; module_cnt<4; module_cnt++){
+            gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module[module_cnt].cupPresent;                            currentIndex++;
+            gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module[module_cnt].Disk.connection;                       currentIndex++;
+            gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module[module_cnt].Disk.isTorqueOn;                       currentIndex++;
+            gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module[module_cnt].Disk.isProfileSet;                     currentIndex++;
+            gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module[module_cnt].Disk.isPPGainSet;                      currentIndex++;
+            gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module[module_cnt].Disk.isPDGainSet;                      currentIndex++;
+            gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module[module_cnt].Disk.movingStatus;                     currentIndex++;
+            gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module[module_cnt].Disk.presentPosition)&0xFF;           currentIndex++;
+            gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module[module_cnt].Disk.presentPosition >> 8)&0xFF;      currentIndex++;
+            gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module[module_cnt].Disk.presentPosition >>16)&0xFF;      currentIndex++;
+            gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module[module_cnt].Disk.presentPosition >> 24)&0xFF;     currentIndex++;
+            gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module[module_cnt].Door.connection;                       currentIndex++;
+            gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module[module_cnt].Door.isTorqueOn;                       currentIndex++;
+            gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module[module_cnt].Door.isProfileSet;                     currentIndex++;
+            gv.lanData.msgToClient[currentIndex] = DRINKOUT_INFO.module[module_cnt].Door.movingStatus;                     currentIndex++;
+            gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module[module_cnt].Door.presentPosition)&0xFF;           currentIndex++;
+            gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module[module_cnt].Door.presentPosition >> 8)&0xFF;      currentIndex++;
+            gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module[module_cnt].Door.presentPosition >>16)&0xFF;      currentIndex++;
+            gv.lanData.msgToClient[currentIndex] = (DRINKOUT_INFO.module[module_cnt].Door.presentPosition >> 24)&0xFF;     currentIndex++;
+        }
         
         
         // Cup Data (7 byte)
@@ -842,10 +813,8 @@ int LAN2CAN_SendToPC(void) {
 
 void LAN2CAN_TaskFunction(void){    
     static int ice_cup_cnt = 0;
-    static int drinkout_cnt = 0;
-    static int test0 = 0, test1 = 0, test2 = 0, test3 = 0, test4 = 0,
-            test5 = 0, test6 = 0, test7 = 0,test8 = 0, test9 = 0;
-    
+    static unsigned int cup_cnt = 0;
+
     PORTFunction();
     UART2Function();
     UART3Function();
@@ -929,622 +898,21 @@ void LAN2CAN_TaskFunction(void){
     }
     gv.sysTaskHandle = SYS_TMR_DelayMS(50);
     
-
     if(BOARD_ID == 0){
-        // Sensor & Door & Bar code
-        switch(drinkout_cnt%100){
-            case 0:
-            {
-                if(DRINKOUT_INFO.module_1.Disk.command_state == MOTOR_IDLE){                   
-                     switch(test0%6){
-                        case 0:{
-                            DRINKOUT_INFO.module_1.Disk.command_state = MOTOR_WAIT_PING;
-                            DRINKOUT_CheckConnection(MODULE_1_DISK);
-                            break;
-                        }
-                        case 1:{
-                            if((DRINKOUT_INFO.module_1.Disk.connection == true)&&(DRINKOUT_INFO.module_1.Disk.isProfileSet == false)){
-                            DRINKOUT_INFO.module_1.Disk.command_state = MOTOR_WAIT_SET_PROFILE;
-                            DRINKOUT_SetProfile(MODULE_1_DISK);
-                            }
-                        }
-                            break;
-                        case 2:{
-//                            if((DRINKOUT_INFO.module_1.Disk.connection == true)&&(DRINKOUT_INFO.module_1.Disk.isProfileAceleSet == false)){
-//                            DRINKOUT_INFO.module_1.Disk.command_state = MOTOR_WAIT_SET_PROFILE_ACELE;
-//                            DRINKOUT_SetProfile_Acele(MODULE_1_DISK);
-//                            }
-                        }
-                            break;    
-                        case 3:{
-                            if((DRINKOUT_INFO.module_1.Disk.connection == true)&&(DRINKOUT_INFO.module_1.Disk.isPPGainSet == false)){
-                            DRINKOUT_INFO.module_1.Disk.command_state = MOTOR_WAIT_SET_PP_GAIN;
-                            DRINKOUT_SetPPGain(MODULE_1_DISK);
-                            }
-                        }
-                            break;
-                        case 4:{
-                            if((DRINKOUT_INFO.module_1.Disk.connection == true)&&(DRINKOUT_INFO.module_1.Disk.isPDGainSet == false)){
-                            DRINKOUT_INFO.module_1.Disk.command_state = MOTOR_WAIT_SET_PD_GAIN;
-                            DRINKOUT_SetPDGain(MODULE_1_DISK);
-                            }
-                         }
-                             break;
-                        case 5:{
-                            DRINKOUT_INFO.module_1.Disk.command_state = MOTOR_WAIT_ENABLE_TORQUE;
-                            DRINKOUT_TurnTorque(MODULE_1_DISK, 1);
-                        }
-                            break;
-                        default:
-                            break;
-                            }
-                            test0++;
-                }
-         
-                //consider as failed connection if still waiting for PING after 1 cycle
-                else if( DRINKOUT_INFO.module_1.Disk.command_state == MOTOR_WAIT_PING){
-                    DRINKOUT_INFO.module_1.Disk.connection = false;
-                    DRINKOUT_INFO.module_1.Disk.isProfileSet = false;
-                    DRINKOUT_INFO.module_1.Disk.isProfileAceleSet = false;
-                    DRINKOUT_INFO.module_1.Disk.isPPGainSet = false;
-                    DRINKOUT_INFO.module_1.Disk.isPDGainSet = false;
-                    DRINKOUT_INFO.module_1.Disk.command_state = MOTOR_IDLE;
-                }
-                else if( DRINKOUT_INFO.module_1.Disk.command_state == MOTOR_WAIT_SET_PROFILE){
-                    DRINKOUT_INFO.module_1.Disk.isProfileSet = false;
-                    DRINKOUT_INFO.module_1.Disk.command_state = MOTOR_IDLE;
-                }
-                else if( DRINKOUT_INFO.module_1.Disk.command_state == MOTOR_WAIT_SET_PP_GAIN){
-                    DRINKOUT_INFO.module_1.Disk.isPPGainSet = false;
-                    DRINKOUT_INFO.module_1.Disk.command_state = MOTOR_IDLE;
-                }
-                else if( DRINKOUT_INFO.module_1.Disk.command_state == MOTOR_WAIT_SET_PD_GAIN){
-                    DRINKOUT_INFO.module_1.Disk.isPDGainSet = false;
-                    DRINKOUT_INFO.module_1.Disk.command_state = MOTOR_IDLE;
-                }
-                else if( DRINKOUT_INFO.module_1.Disk.command_state == MOTOR_WAIT_ENABLE_TORQUE){
-                    DRINKOUT_INFO.module_1.Disk.isTorqueOn = false;
-                    DRINKOUT_INFO.module_1.Disk.connection = false;
-                    DRINKOUT_INFO.module_1.Disk.isProfileSet = false;
-                    DRINKOUT_INFO.module_1.Disk.command_state = MOTOR_IDLE;
-                }
-                else if(DRINKOUT_INFO.module_1.Disk.command_state = MOTOR_WAIT_GO_POS1){
-                     DRINKOUT_INFO.module_1.Disk.command_state = MOTOR_IDLE;
-                }
-                else if(DRINKOUT_INFO.module_1.Disk.command_state = MOTOR_WAIT_GO_POS2){
-                     DRINKOUT_INFO.module_1.Disk.command_state = MOTOR_IDLE;
-                }
-                else if(DRINKOUT_INFO.module_1.Disk.command_state = MOTOR_WAIT_GO_POS3){
-                     DRINKOUT_INFO.module_1.Disk.command_state = MOTOR_IDLE;
-                }
-            }
-                break;
-            case 1:
-            {
-                if(DRINKOUT_INFO.module_1.Door.command_state == MOTOR_IDLE){
-                            switch(test1%3){
-                                case 0:{
-                                    DRINKOUT_INFO.module_1.Door.command_state = MOTOR_WAIT_PING;
-                                    DRINKOUT_CheckConnection(MODULE_1_DOOR);
-                                    break;
-                                }
-                                case 1:
-                                {
-                                    if((DRINKOUT_INFO.module_1.Door.connection == true)&&(DRINKOUT_INFO.module_1.Door.isProfileSet == false)){
-                                    DRINKOUT_INFO.module_1.Door.command_state = MOTOR_WAIT_SET_PROFILE;
-                                    DRINKOUT_SetProfile(MODULE_1_DOOR);
-                                    }
-                                }
-                                    break;
-                                case 2:
-                                {
-                                    DRINKOUT_INFO.module_1.Door.command_state = MOTOR_WAIT_ENABLE_TORQUE;
-                                    DRINKOUT_TurnTorque(MODULE_1_DOOR, 1);
-
-                                }
-                                    break;
-                                default:
-                                        break;
-                            }
-                            test1++;
-                }
-                else if( DRINKOUT_INFO.module_1.Door.command_state == MOTOR_WAIT_PING){
-                    DRINKOUT_INFO.module_1.Door.connection = false;
-                    DRINKOUT_INFO.module_1.Door.isProfileSet = false;
-                    DRINKOUT_INFO.module_1.Door.command_state = MOTOR_IDLE;
-                }
-                else if( DRINKOUT_INFO.module_1.Door.command_state == MOTOR_WAIT_SET_PROFILE){
-                    DRINKOUT_INFO.module_1.Door.isProfileSet = false;
-                    DRINKOUT_INFO.module_1.Door.command_state = MOTOR_IDLE;
-                }
-                else if( DRINKOUT_INFO.module_1.Door.command_state == MOTOR_WAIT_ENABLE_TORQUE){
-                    DRINKOUT_INFO.module_1.Door.isTorqueOn = false;
-                    DRINKOUT_INFO.module_1.Door.connection = false;
-                    DRINKOUT_INFO.module_1.Door.isProfileSet = false;
-                    DRINKOUT_INFO.module_1.Door.command_state = MOTOR_IDLE;
-                }
-                else if( DRINKOUT_INFO.module_1.Door.command_state == MOTOR_WAIT_DOOR_OPEN){
-                    DRINKOUT_INFO.module_1.Door.command_state = MOTOR_IDLE;
-                }
-                else if( DRINKOUT_INFO.module_1.Door.command_state == MOTOR_WAIT_DOOR_CLOSE){
-                    DRINKOUT_INFO.module_1.Door.command_state = MOTOR_IDLE;
-                }
-            }
-                break;
-            case 2:
-            {
-                if(DRINKOUT_INFO.module_2.Disk.command_state == MOTOR_IDLE){                   
-                     switch(test2%6){
-                        case 0:{
-                            DRINKOUT_INFO.module_2.Disk.command_state = MOTOR_WAIT_PING;
-                            DRINKOUT_CheckConnection(MODULE_2_DISK);
-                            break;
-                        }
-                        case 1:{
-                            if((DRINKOUT_INFO.module_2.Disk.connection == true)&&(DRINKOUT_INFO.module_2.Disk.isProfileSet == false)){
-                            DRINKOUT_INFO.module_2.Disk.command_state = MOTOR_WAIT_SET_PROFILE;
-                            DRINKOUT_SetProfile(MODULE_2_DISK);
-                            }
-                        }
-                            break;
-                        case 2:{
-//                            if((DRINKOUT_INFO.module_2.Disk.connection == true)&&(DRINKOUT_INFO.module_2.Disk.isProfileAceleSet == false)){
-//                            DRINKOUT_INFO.module_2.Disk.command_state = MOTOR_WAIT_SET_PROFILE_ACELE;
-//                            DRINKOUT_SetProfile_Acele(MODULE_2_DISK);
-//                            }
-                        }
-                            break;    
-                        case 3:{
-                            if((DRINKOUT_INFO.module_2.Disk.connection == true)&&(DRINKOUT_INFO.module_2.Disk.isPPGainSet == false)){
-                            DRINKOUT_INFO.module_2.Disk.command_state = MOTOR_WAIT_SET_PP_GAIN;
-                            DRINKOUT_SetPPGain(MODULE_2_DISK);
-                            }
-                        }
-                            break;
-                        case 4:{
-                            if((DRINKOUT_INFO.module_2.Disk.connection == true)&&(DRINKOUT_INFO.module_2.Disk.isPDGainSet == false)){
-                            DRINKOUT_INFO.module_2.Disk.command_state = MOTOR_WAIT_SET_PD_GAIN;
-                            DRINKOUT_SetPDGain(MODULE_2_DISK);
-                            }
-                         }
-                             break;
-                        case 5:{
-                            DRINKOUT_INFO.module_2.Disk.command_state = MOTOR_WAIT_ENABLE_TORQUE;
-                            DRINKOUT_TurnTorque(MODULE_2_DISK, 1);
-                        }
-                            break;
-                        default:
-                            break;
-                            }
-                            test2++;
-                }
-         
-                //consider as failed connection if still waiting for PING after 1 cycle
-                else if( DRINKOUT_INFO.module_2.Disk.command_state == MOTOR_WAIT_PING){
-                    DRINKOUT_INFO.module_2.Disk.connection = false;
-                    DRINKOUT_INFO.module_2.Disk.isProfileSet = false;
-                    DRINKOUT_INFO.module_2.Disk.isProfileAceleSet = false;
-                    DRINKOUT_INFO.module_2.Disk.isPPGainSet = false;
-                    DRINKOUT_INFO.module_2.Disk.isPDGainSet = false;
-                    DRINKOUT_INFO.module_2.Disk.command_state = MOTOR_IDLE;
-                }
-                else if( DRINKOUT_INFO.module_2.Disk.command_state == MOTOR_WAIT_SET_PROFILE){
-                    DRINKOUT_INFO.module_2.Disk.isProfileSet = false;
-                    DRINKOUT_INFO.module_2.Disk.command_state = MOTOR_IDLE;
-                }
-                else if( DRINKOUT_INFO.module_2.Disk.command_state == MOTOR_WAIT_SET_PP_GAIN){
-                    DRINKOUT_INFO.module_2.Disk.isPPGainSet = false;
-                    DRINKOUT_INFO.module_2.Disk.command_state = MOTOR_IDLE;
-                }
-                else if( DRINKOUT_INFO.module_2.Disk.command_state == MOTOR_WAIT_SET_PD_GAIN){
-                    DRINKOUT_INFO.module_2.Disk.isPDGainSet = false;
-                    DRINKOUT_INFO.module_2.Disk.command_state = MOTOR_IDLE;
-                }
-                else if( DRINKOUT_INFO.module_2.Disk.command_state == MOTOR_WAIT_ENABLE_TORQUE){
-                    DRINKOUT_INFO.module_2.Disk.isTorqueOn = false;
-                    DRINKOUT_INFO.module_2.Disk.connection = false;
-                    DRINKOUT_INFO.module_2.Disk.isProfileSet = false;
-                    DRINKOUT_INFO.module_2.Disk.command_state = MOTOR_IDLE;
-                }
-                else if(DRINKOUT_INFO.module_2.Disk.command_state = MOTOR_WAIT_GO_POS1){
-                     DRINKOUT_INFO.module_2.Disk.command_state = MOTOR_IDLE;
-                }
-                else if(DRINKOUT_INFO.module_2.Disk.command_state = MOTOR_WAIT_GO_POS2){
-                     DRINKOUT_INFO.module_2.Disk.command_state = MOTOR_IDLE;
-                }
-                else if(DRINKOUT_INFO.module_2.Disk.command_state = MOTOR_WAIT_GO_POS3){
-                     DRINKOUT_INFO.module_2.Disk.command_state = MOTOR_IDLE;
-                }
-            }
-            break;
-            case 3:
-            {
-                if(DRINKOUT_INFO.module_2.Door.command_state == MOTOR_IDLE){
-                    switch(test3%3){
-                        case 0:{
-                            DRINKOUT_INFO.module_2.Door.command_state = MOTOR_WAIT_PING;
-                            DRINKOUT_CheckConnection(MODULE_2_DOOR);                      
-                            break;
-                        }
-                        case 1:{
-                            if((DRINKOUT_INFO.module_2.Door.connection == true)&&(DRINKOUT_INFO.module_2.Door.isProfileSet == false)){
-                            DRINKOUT_INFO.module_2.Door.command_state = MOTOR_WAIT_SET_PROFILE;
-                            DRINKOUT_SetProfile(MODULE_2_DOOR);
-                            }
-                        }
-                            break;
-                        case 2:{
-                            DRINKOUT_INFO.module_2.Door.command_state = MOTOR_WAIT_ENABLE_TORQUE;
-                            DRINKOUT_TurnTorque(MODULE_2_DOOR, 1);
-                        }
-                            break;
-                        default:
-                            break;
-                    }
-                        test3++;
-                }
-                else if( DRINKOUT_INFO.module_2.Door.command_state == MOTOR_WAIT_PING){
-                    DRINKOUT_INFO.module_2.Door.connection = false;
-                    DRINKOUT_INFO.module_2.Door.isProfileSet = false;
-                    DRINKOUT_INFO.module_2.Door.command_state = MOTOR_IDLE;
-                }
-                else if( DRINKOUT_INFO.module_2.Door.command_state == MOTOR_WAIT_SET_PROFILE){
-                    DRINKOUT_INFO.module_2.Door.isProfileSet = false;
-                    DRINKOUT_INFO.module_2.Door.command_state = MOTOR_IDLE;
-                }
-                else if( DRINKOUT_INFO.module_2.Door.command_state == MOTOR_WAIT_ENABLE_TORQUE){
-                    DRINKOUT_INFO.module_2.Door.isTorqueOn = false;
-                    DRINKOUT_INFO.module_2.Door.connection = false;
-                    DRINKOUT_INFO.module_2.Door.isProfileSet = false;
-                    DRINKOUT_INFO.module_2.Door.command_state = MOTOR_IDLE;
-                }
-                else if( DRINKOUT_INFO.module_2.Door.command_state == MOTOR_WAIT_DOOR_OPEN){
-                    DRINKOUT_INFO.module_2.Door.command_state = MOTOR_IDLE;
-                }
-                else if( DRINKOUT_INFO.module_2.Door.command_state == MOTOR_WAIT_DOOR_CLOSE){
-                    DRINKOUT_INFO.module_2.Door.command_state = MOTOR_IDLE;
-                }
-            }
-                break;
-            case 4:
-            {
-                if(DRINKOUT_INFO.module_3.Disk.command_state == MOTOR_IDLE){                   
-                     switch(test4%6){
-                        case 0:{
-                            DRINKOUT_INFO.module_3.Disk.command_state = MOTOR_WAIT_PING;
-                            DRINKOUT_CheckConnection(MODULE_3_DISK);
-                            break;
-                        }
-                        case 1:{
-                            if((DRINKOUT_INFO.module_3.Disk.connection == true)&&(DRINKOUT_INFO.module_3.Disk.isProfileSet == false)){
-                            DRINKOUT_INFO.module_3.Disk.command_state = MOTOR_WAIT_SET_PROFILE;
-                            DRINKOUT_SetProfile(MODULE_3_DISK);
-                            }
-                        }
-                            break;
-                        case 2:{
-//                            if((DRINKOUT_INFO.module_3.Disk.connection == true)&&(DRINKOUT_INFO.module_3.Disk.isProfileAceleSet == false)){
-//                            DRINKOUT_INFO.module_3.Disk.command_state = MOTOR_WAIT_SET_PROFILE_ACELE;
-//                            DRINKOUT_SetProfile_Acele(MODULE_3_DISK);
-//                            }
-                        }
-                            break;    
-                        case 3:{
-                            if((DRINKOUT_INFO.module_3.Disk.connection == true)&&(DRINKOUT_INFO.module_3.Disk.isPPGainSet == false)){
-                            DRINKOUT_INFO.module_3.Disk.command_state = MOTOR_WAIT_SET_PP_GAIN;
-                            DRINKOUT_SetPPGain(MODULE_3_DISK);
-                            }
-                        }
-                            break;
-                        case 4:{
-                            if((DRINKOUT_INFO.module_3.Disk.connection == true)&&(DRINKOUT_INFO.module_3.Disk.isPDGainSet == false)){
-                            DRINKOUT_INFO.module_3.Disk.command_state = MOTOR_WAIT_SET_PD_GAIN;
-                            DRINKOUT_SetPDGain(MODULE_3_DISK);
-                            }
-                         }
-                             break;
-                        case 5:{
-                            DRINKOUT_INFO.module_3.Disk.command_state = MOTOR_WAIT_ENABLE_TORQUE;
-                            DRINKOUT_TurnTorque(MODULE_3_DISK, 1);
-                        }
-                            break;
-                        default:
-                            break;
-                            }
-                            test4++;
-                }
-         
-                //consider as failed connection if still waiting for PING after 1 cycle
-                else if( DRINKOUT_INFO.module_3.Disk.command_state == MOTOR_WAIT_PING){
-                    DRINKOUT_INFO.module_3.Disk.connection = false;
-                    DRINKOUT_INFO.module_3.Disk.isProfileSet = false;
-                    DRINKOUT_INFO.module_3.Disk.isProfileAceleSet = false;
-                    DRINKOUT_INFO.module_3.Disk.isPPGainSet = false;
-                    DRINKOUT_INFO.module_3.Disk.isPDGainSet = false;
-                    DRINKOUT_INFO.module_3.Disk.command_state = MOTOR_IDLE;
-                }
-                else if( DRINKOUT_INFO.module_3.Disk.command_state == MOTOR_WAIT_SET_PROFILE){
-                    DRINKOUT_INFO.module_3.Disk.isProfileSet = false;
-                    DRINKOUT_INFO.module_3.Disk.command_state = MOTOR_IDLE;
-                }
-                else if( DRINKOUT_INFO.module_3.Disk.command_state == MOTOR_WAIT_SET_PP_GAIN){
-                    DRINKOUT_INFO.module_3.Disk.isPPGainSet = false;
-                    DRINKOUT_INFO.module_3.Disk.command_state = MOTOR_IDLE;
-                }
-                else if( DRINKOUT_INFO.module_3.Disk.command_state == MOTOR_WAIT_SET_PD_GAIN){
-                    DRINKOUT_INFO.module_3.Disk.isPDGainSet = false;
-                    DRINKOUT_INFO.module_3.Disk.command_state = MOTOR_IDLE;
-                }
-                else if( DRINKOUT_INFO.module_3.Disk.command_state == MOTOR_WAIT_ENABLE_TORQUE){
-                    DRINKOUT_INFO.module_3.Disk.isTorqueOn = false;
-                    DRINKOUT_INFO.module_3.Disk.connection = false;
-                    DRINKOUT_INFO.module_3.Disk.isProfileSet = false;
-                    DRINKOUT_INFO.module_3.Disk.command_state = MOTOR_IDLE;
-                }
-                else if(DRINKOUT_INFO.module_3.Disk.command_state = MOTOR_WAIT_GO_POS1){
-                     DRINKOUT_INFO.module_3.Disk.command_state = MOTOR_IDLE;
-                }
-                else if(DRINKOUT_INFO.module_3.Disk.command_state = MOTOR_WAIT_GO_POS2){
-                     DRINKOUT_INFO.module_3.Disk.command_state = MOTOR_IDLE;
-                }
-                else if(DRINKOUT_INFO.module_3.Disk.command_state = MOTOR_WAIT_GO_POS3){
-                     DRINKOUT_INFO.module_3.Disk.command_state = MOTOR_IDLE;
-                }
-            }
-                break;
-            case 5:{
-                if(DRINKOUT_INFO.module_3.Door.command_state == MOTOR_IDLE){
-                            switch(test5%3){
-                                case 0:{
-                                    DRINKOUT_INFO.module_3.Door.command_state = MOTOR_WAIT_PING;
-                                    DRINKOUT_CheckConnection(MODULE_3_DOOR);
-                                    break;
-                                }
-                                case 1:
-                                {
-                                    if((DRINKOUT_INFO.module_3.Door.connection == true)&&(DRINKOUT_INFO.module_3.Door.isProfileSet == false)){
-                                    DRINKOUT_INFO.module_3.Door.command_state = MOTOR_WAIT_SET_PROFILE;
-                                    DRINKOUT_SetProfile(MODULE_3_DOOR);
-                                    }
-                                }
-                                    break;
-                                case 2:
-                                {
-                                    DRINKOUT_INFO.module_3.Door.command_state = MOTOR_WAIT_ENABLE_TORQUE;
-                                    DRINKOUT_TurnTorque(MODULE_3_DOOR, 1);
-
-                                }
-                                    break;
-                                default:
-                                        break;
-                            }
-                            test5++;
-                }
-                else if( DRINKOUT_INFO.module_3.Door.command_state == MOTOR_WAIT_PING){
-                    DRINKOUT_INFO.module_3.Door.connection = false;
-                    DRINKOUT_INFO.module_3.Door.isProfileSet = false;
-                    DRINKOUT_INFO.module_3.Door.command_state = MOTOR_IDLE;
-                }
-                else if( DRINKOUT_INFO.module_3.Door.command_state == MOTOR_WAIT_SET_PROFILE){
-                    DRINKOUT_INFO.module_3.Door.isProfileSet = false;
-                    DRINKOUT_INFO.module_3.Door.command_state = MOTOR_IDLE;
-                }
-                else if( DRINKOUT_INFO.module_3.Door.command_state == MOTOR_WAIT_ENABLE_TORQUE){
-                    DRINKOUT_INFO.module_3.Door.isTorqueOn = false;
-                    DRINKOUT_INFO.module_3.Door.connection = false;
-                    DRINKOUT_INFO.module_3.Door.isProfileSet = false;
-                    DRINKOUT_INFO.module_3.Door.command_state = MOTOR_IDLE;
-                }
-                else if( DRINKOUT_INFO.module_3.Door.command_state == MOTOR_WAIT_DOOR_OPEN){
-                    DRINKOUT_INFO.module_3.Door.command_state = MOTOR_IDLE;
-                }
-                else if( DRINKOUT_INFO.module_3.Door.command_state == MOTOR_WAIT_DOOR_CLOSE){
-                    DRINKOUT_INFO.module_3.Door.command_state = MOTOR_IDLE;
-                }
-            }
-                break;
-            case 6:
-            {
-                if(DRINKOUT_INFO.module_4.Disk.command_state == MOTOR_IDLE){                   
-                     switch(test6%6){
-                        case 0:{
-                            DRINKOUT_INFO.module_4.Disk.command_state = MOTOR_WAIT_PING;
-                            DRINKOUT_CheckConnection(MODULE_4_DISK);
-                            break;
-                        }
-                        case 1:{
-                            if((DRINKOUT_INFO.module_4.Disk.connection == true)&&(DRINKOUT_INFO.module_4.Disk.isProfileSet == false)){
-                            DRINKOUT_INFO.module_4.Disk.command_state = MOTOR_WAIT_SET_PROFILE;
-                            DRINKOUT_SetProfile(MODULE_4_DISK);
-                            }
-                        }
-                            break;
-                        case 2:{
-//                            if((DRINKOUT_INFO.module_4.Disk.connection == true)&&(DRINKOUT_INFO.module_4.Disk.isProfileAceleSet == false)){
-//                            DRINKOUT_INFO.module_4.Disk.command_state = MOTOR_WAIT_SET_PROFILE_ACELE;
-//                            DRINKOUT_SetProfile_Acele(MODULE_4_DISK);
-//                            }
-                        }
-                            break;    
-                        case 3:{
-                            if((DRINKOUT_INFO.module_4.Disk.connection == true)&&(DRINKOUT_INFO.module_4.Disk.isPPGainSet == false)){
-                            DRINKOUT_INFO.module_4.Disk.command_state = MOTOR_WAIT_SET_PP_GAIN;
-                            DRINKOUT_SetPPGain(MODULE_4_DISK);
-                            }
-                        }
-                            break;
-                        case 4:{
-                            if((DRINKOUT_INFO.module_4.Disk.connection == true)&&(DRINKOUT_INFO.module_4.Disk.isPDGainSet == false)){
-                            DRINKOUT_INFO.module_4.Disk.command_state = MOTOR_WAIT_SET_PD_GAIN;
-                            DRINKOUT_SetPDGain(MODULE_4_DISK);
-                            }
-                         }
-                             break;
-                        case 5:{
-                            DRINKOUT_INFO.module_4.Disk.command_state = MOTOR_WAIT_ENABLE_TORQUE;
-                            DRINKOUT_TurnTorque(MODULE_4_DISK, 1);
-                        }
-                            break;
-                        default:
-                            break;
-                            }
-                            test6++;
-                }
-         
-                //consider as failed connection if still waiting for PING after 1 cycle
-                else if( DRINKOUT_INFO.module_4.Disk.command_state == MOTOR_WAIT_PING){
-                    DRINKOUT_INFO.module_4.Disk.connection = false;
-                    DRINKOUT_INFO.module_4.Disk.isProfileSet = false;
-                    DRINKOUT_INFO.module_4.Disk.isProfileAceleSet = false;
-                    DRINKOUT_INFO.module_4.Disk.isPPGainSet = false;
-                    DRINKOUT_INFO.module_4.Disk.isPDGainSet = false;
-                    DRINKOUT_INFO.module_4.Disk.command_state = MOTOR_IDLE;
-                }
-                else if( DRINKOUT_INFO.module_4.Disk.command_state == MOTOR_WAIT_SET_PROFILE){
-                    DRINKOUT_INFO.module_4.Disk.isProfileSet = false;
-                }
-                else if( DRINKOUT_INFO.module_4.Disk.command_state == MOTOR_WAIT_SET_PP_GAIN){
-                    DRINKOUT_INFO.module_4.Disk.isPPGainSet = false;
-                    DRINKOUT_INFO.module_4.Disk.command_state = MOTOR_IDLE;
-                }
-                else if( DRINKOUT_INFO.module_4.Disk.command_state == MOTOR_WAIT_SET_PD_GAIN){
-                    DRINKOUT_INFO.module_4.Disk.isPDGainSet = false;
-                    DRINKOUT_INFO.module_4.Disk.command_state = MOTOR_IDLE;
-                }
-                else if( DRINKOUT_INFO.module_4.Disk.command_state == MOTOR_WAIT_ENABLE_TORQUE){
-                    DRINKOUT_INFO.module_4.Disk.isTorqueOn = false;
-                    DRINKOUT_INFO.module_4.Disk.connection = false;
-                    DRINKOUT_INFO.module_4.Disk.isProfileSet = false;
-                    DRINKOUT_INFO.module_4.Disk.command_state = MOTOR_IDLE;
-                }
-                else if(DRINKOUT_INFO.module_4.Disk.command_state = MOTOR_WAIT_GO_POS1){
-                     DRINKOUT_INFO.module_4.Disk.command_state = MOTOR_IDLE;
-                }
-                else if(DRINKOUT_INFO.module_4.Disk.command_state = MOTOR_WAIT_GO_POS2){
-                     DRINKOUT_INFO.module_4.Disk.command_state = MOTOR_IDLE;
-                }
-                else if(DRINKOUT_INFO.module_4.Disk.command_state = MOTOR_WAIT_GO_POS3){
-                     DRINKOUT_INFO.module_4.Disk.command_state = MOTOR_IDLE;
-                }
-            }
-                break;   
-            case 7:
-              {
-                  if(DRINKOUT_INFO.module_4.Door.command_state == MOTOR_IDLE){
-                            switch(test7%3){
-                                case 0:{
-                                    DRINKOUT_INFO.module_4.Door.command_state = MOTOR_WAIT_PING;
-                                    DRINKOUT_CheckConnection(MODULE_4_DOOR);
-                                    break;
-                                }
-                                case 1:
-                                {
-                                    if((DRINKOUT_INFO.module_4.Door.connection == true)&&(DRINKOUT_INFO.module_4.Door.isProfileSet == false)){
-                                    DRINKOUT_INFO.module_4.Door.command_state = MOTOR_WAIT_SET_PROFILE;
-                                    DRINKOUT_SetProfile(MODULE_4_DOOR);
-                                    }
-                                }
-                                    break;
-                                case 2:
-                                {
-                                    DRINKOUT_INFO.module_4.Door.command_state = MOTOR_WAIT_ENABLE_TORQUE;
-                                    DRINKOUT_TurnTorque(MODULE_4_DOOR, 1);
-
-                                }
-                                    break;
-                                default:
-                                        break;
-                            }
-                            test7++;
-                }
-                else if( DRINKOUT_INFO.module_4.Door.command_state == MOTOR_WAIT_PING){
-                    DRINKOUT_INFO.module_4.Door.connection = false;
-                    DRINKOUT_INFO.module_4.Door.isProfileSet = false;
-                    DRINKOUT_INFO.module_4.Door.command_state = MOTOR_IDLE;
-                }
-                else if( DRINKOUT_INFO.module_4.Door.command_state == MOTOR_WAIT_SET_PROFILE){
-                    DRINKOUT_INFO.module_4.Door.isProfileSet = false;
-                    DRINKOUT_INFO.module_4.Door.command_state = MOTOR_IDLE;
-                }
-                else if( DRINKOUT_INFO.module_4.Door.command_state == MOTOR_WAIT_ENABLE_TORQUE){
-                    DRINKOUT_INFO.module_4.Door.isTorqueOn = false;
-                    DRINKOUT_INFO.module_4.Door.connection = false;
-                    DRINKOUT_INFO.module_4.Door.isProfileSet = false;
-                    DRINKOUT_INFO.module_4.Door.command_state = MOTOR_IDLE;
-                }
-                else if( DRINKOUT_INFO.module_4.Door.command_state == MOTOR_WAIT_DOOR_OPEN){
-                    DRINKOUT_INFO.module_4.Door.command_state = MOTOR_IDLE;
-                }
-                else if( DRINKOUT_INFO.module_4.Door.command_state == MOTOR_WAIT_DOOR_CLOSE){
-                    DRINKOUT_INFO.module_4.Door.command_state = MOTOR_IDLE;
-                }
-            }
-                break;     
-            case 8:
-            {
-//                DRINKOUT_INFO.module_left.ready = (DRINKOUT_INFO.module_left.Disk.connection && DRINKOUT_INFO.module_left.Disk.isProfileSet &&
-//                        DRINKOUT_INFO.module_left.Disk.isPPGainSet &&DRINKOUT_INFO.module_left.Disk.isPDGainSet && DRINKOUT_INFO.module_left.Disk.isTorqueOn && 
-//                        DRINKOUT_INFO.module_left.Door.connection && DRINKOUT_INFO.module_left.Door.isProfileSet && DRINKOUT_INFO.module_left.Door.isTorqueOn);
-//                DRINKOUT_INFO.module_middle_left.ready = (DRINKOUT_INFO.module_middle_left.Disk.connection && DRINKOUT_INFO.module_middle_left.Disk.isProfileSet &&
-//                        DRINKOUT_INFO.module_middle_left.Disk.isPPGainSet && DRINKOUT_INFO.module_middle_left.Disk.isPDGainSet && DRINKOUT_INFO.module_middle_left.Disk.isTorqueOn &&
-//                        DRINKOUT_INFO.module_middle_left.Door.connection && DRINKOUT_INFO.module_middle_left.Door.isProfileSet && DRINKOUT_INFO.module_middle_left.Door.isTorqueOn);
-//                DRINKOUT_INFO.module_middle_right.ready = (DRINKOUT_INFO.module_middle_right.Disk.connection && DRINKOUT_INFO.module_middle_right.Disk.isProfileSet && DRINKOUT_INFO.module_middle_right.Disk.isProfileAceleSet &&
-//                        DRINKOUT_INFO.module_middle_right.Disk.isPPGainSet && DRINKOUT_INFO.module_middle_right.Disk.isPDGainSet && DRINKOUT_INFO.module_middle_right.Disk.isTorqueOn &&
-//                        DRINKOUT_INFO.module_middle_right.Door.connection && DRINKOUT_INFO.module_middle_right.Door.isProfileSet && DRINKOUT_INFO.module_middle_right.Door.isTorqueOn);
-//                DRINKOUT_INFO.module_right.ready = (DRINKOUT_INFO.module_right.Disk.connection && DRINKOUT_INFO.module_right.Disk.isProfileSet && DRINKOUT_INFO.module_right.Disk.isProfileAceleSet &&
-//                        DRINKOUT_INFO.module_right.Disk.isPPGainSet && DRINKOUT_INFO.module_right.Disk.isPDGainSet && DRINKOUT_INFO.module_right.Disk.isTorqueOn &&
-//                        DRINKOUT_INFO.module_right.Door.connection && DRINKOUT_INFO.module_right.Door.isProfileSet && DRINKOUT_INFO.module_right.Door.isTorqueOn);
-//                //drink-out system ready when all of four modules ready
-//                DRINKOUT_INFO.connection = (DRINKOUT_INFO.module_left.ready && DRINKOUT_INFO.module_middle_left.ready &&
-//                                            DRINKOUT_INFO.module_middle_right.ready && DRINKOUT_INFO.module_right.ready);
-            }
-                break;
-            case 9:{
-                if(ICE_VALVE.motor.command_state == MOTOR_IDLE){
-                    switch(test9%3){
-                        case 0:
-                            ICE_Valve_Check_Connection();
-                            ICE_VALVE.motor.command_state = MOTOR_WAIT_PING;
-                            Nop();
-                        
-                            break;
-                        case 1:
-                            if((ICE_VALVE.motor.connection == true) && ICE_VALVE.motor.isProfileSet == false){
-//                                ICE_Valve_Set_Profile();
-//                                ICE_VALVE.command_state = MOTOR_WAIT_SET_PROFILE;
-                            }
-                        
-                            break;
-                        case 2:
-                            ICE_Valve_Set_Torque();
-                            ICE_VALVE.motor.command_state = MOTOR_WAIT_ENABLE_TORQUE;
-                        
-                            break;
-                    }
-                    test9++;
-                }
-                else if(ICE_VALVE.motor.command_state == MOTOR_WAIT_PING){
-                    ICE_VALVE.motor.connection = false;
-                    ICE_VALVE.motor.command_state = MOTOR_IDLE;
-                }
-                else if(ICE_VALVE.motor.command_state == MOTOR_WAIT_SET_PROFILE){
-                    ICE_VALVE.motor.isProfileSet = false;
-                    ICE_VALVE.motor.command_state = MOTOR_IDLE;
-                }
-                else if(ICE_VALVE.motor.command_state == MOTOR_WAIT_ENABLE_TORQUE){
-                    ICE_VALVE.motor.isTorqueOn = false;
-                    ICE_VALVE.motor.command_state = MOTOR_IDLE;
-                }
-            }
-                break;
-            default:
-                break;
-            
+        cup_cnt++;
+        if(cup_cnt%10 == 0){
+            CUP_RequestStatus();
+            cup_connection_count++;
         }
-        drinkout_cnt++;
+        
+        if(cup_connection_count < 5){
+            CUP_INFO.connection = 1;
+        }else{
+            CUP_INFO.connection = 0;
+        }
+        
     }
-    
-    else if(BOARD_ID == 1){
+    if(BOARD_ID == 1){
         // Ice & Cup
         ice_cup_cnt++;
         switch(ice_cup_cnt%5){
@@ -1564,10 +932,6 @@ void LAN2CAN_TaskFunction(void){
                 ICE_RequestStatus();
                 ice_connection_count++;
                 break;
-            case 4:
-                CUP_RequestStatus();
-                cup_connection_count++;
-                break;
         }
         
         if(ice_connection_count < 10){
@@ -1575,12 +939,11 @@ void LAN2CAN_TaskFunction(void){
         }else{
             ICE_INFO.connection = 0;
         }
-        if(cup_connection_count < 5){
-            CUP_INFO.connection = 1;
-        }else{
-            CUP_INFO.connection = 0;
-        }
     }
+    
+    
+    
+    
 }
 
 
@@ -1595,10 +958,10 @@ void PORTFunction(){
         // Outlet Sensor (Din) * 4
         // Relay (Dout) * 2
         
-        DRINKOUT_INFO.module_1.cupPresent = PORTBbits.RB2;
-        DRINKOUT_INFO.module_2.cupPresent = PORTBbits.RB3;
-        DRINKOUT_INFO.module_3.cupPresent = PORTBbits.RB4;
-        DRINKOUT_INFO.module_4.cupPresent = PORTBbits.RB5;
+        DRINKOUT_INFO.module[0].cupPresent = PORTBbits.RB2;
+        DRINKOUT_INFO.module[1].cupPresent = PORTBbits.RB3;
+        DRINKOUT_INFO.module[2].cupPresent = PORTBbits.RB4;
+        DRINKOUT_INFO.module[3].cupPresent = PORTBbits.RB5;
         
     }else if(BOARD_ID == 1){
         // Board ID 1 (192.168.100.111)
@@ -1630,15 +993,13 @@ void PORTFunction(){
     }
 }
 
-
+unsigned int TEST_CNT = 0;
 void UART2Function(){
     static unsigned char DrinkOut_state = 0;
     static unsigned char DrinkOut_index;
     static short DrinkOut_data_length = 0;
-    static int DrinkOut_buf[30] = {0,};
+    static unsigned char DrinkOut_buf[30] = {0,};
     
-    
-
     
  
     if(U2STAbits.URXDA == TRUE){
@@ -1664,7 +1025,7 @@ void UART2Function(){
                     }
                     break;
                 case 2:
-                    if(temp_ch == 0xFD || (temp_ch == 0x00)){
+                    if((temp_ch == 0xFD) || (temp_ch == 0x00)){
                         // match header 3
                         DrinkOut_state = 3;
                     }else{
@@ -1676,6 +1037,7 @@ void UART2Function(){
                         // match header 4
                         DrinkOut_state = 4;
                         DrinkOut_index = 0;
+                        DrinkOut_data_length = 0;
                     }else{
                         DrinkOut_state = 0;
                     }
@@ -1687,8 +1049,12 @@ void UART2Function(){
                     if((DrinkOut_index >= 3) && (DrinkOut_data_length == 0)){
                         DrinkOut_data_length = (unsigned short)((unsigned short)(DrinkOut_buf[1]) | ((unsigned short)(DrinkOut_buf[2]) << 8));
 //                        DrinkOut_data_length = (DrinkOut_buf[1]);
+                        
+                        if(DrinkOut_data_length > 50){
+                            DrinkOut_state = 0;
+                        }
                     }
-                    if((DrinkOut_data_length != 0) && (DrinkOut_index > DrinkOut_data_length)){
+                    if((DrinkOut_data_length != 0) && (DrinkOut_index >= DrinkOut_data_length+3)){
                         DrinkOut_state = 5;
                         DrinkOut_data_length=0;
                     }
@@ -1696,478 +1062,102 @@ void UART2Function(){
                     break;
                 case 5:
                 {
-                    if((DrinkOut_buf[3]!=0x55) || (DrinkOut_buf[4] != 0)){
+                    if((DrinkOut_buf[3] != 0x55) || (DrinkOut_buf[4] != 0)){
                         //error occurred
                         DrinkOut_state = 0;
+//                        Nop();
                         break;
                     }
-                    switch(DrinkOut_buf[0]){
-                        //which motor is data from
-                        case MODULE_1_DISK:
-                            switch(DRINKOUT_INFO.module_1.Disk.command_state){
-                                case MOTOR_WAIT_PING:{
-                                    DRINKOUT_INFO.module_1.Disk.connection = true;
-                                    DRINKOUT_INFO.module_1.Disk.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                case MOTOR_WAIT_SET_PROFILE:{
-                                    DRINKOUT_INFO.module_1.Disk.isProfileSet = true;
-                                    DRINKOUT_INFO.module_1.Disk.command_state = MOTOR_IDLE;
-                                }
-                                    break;      
-                                case MOTOR_WAIT_SET_PROFILE_ACELE:{
-                                    DRINKOUT_INFO.module_1.Disk.isProfileAceleSet = true;
-                                    DRINKOUT_INFO.module_1.Disk.command_state = MOTOR_IDLE;
-                                }
-                                    break;            
-                                case MOTOR_WAIT_SET_PP_GAIN:{
-                                    DRINKOUT_INFO.module_1.Disk.isPPGainSet = true;
-                                    DRINKOUT_INFO.module_1.Disk.command_state = MOTOR_IDLE;
-                                }
-                                    break;    
-                                case MOTOR_WAIT_SET_PD_GAIN:{
-                                    DRINKOUT_INFO.module_1.Disk.isPDGainSet = true;
-                                    DRINKOUT_INFO.module_1.Disk.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                case MOTOR_WAIT_ENABLE_TORQUE:{
-                                    DRINKOUT_INFO.module_1.Disk.isTorqueOn = true;
-                                    DRINKOUT_INFO.module_1.Disk.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                case MOTOR_WAIT_GO_POS1:{
-                                    DRINKOUT_INFO.module_1.currentPosition = 1;
-                                    DRINKOUT_INFO.module_1.Disk.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                case MOTOR_WAIT_GO_POS2:{
-                                    DRINKOUT_INFO.module_1.currentPosition = 2;
-                                    DRINKOUT_INFO.module_1.Disk.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                case MOTOR_WAIT_GO_POS3:{
-                                    DRINKOUT_INFO.module_1.currentPosition = 3;
-                                    DRINKOUT_INFO.module_1.Disk.command_state = MOTOR_IDLE;
-                                }
-                                    break;  
-                                case MOTOR_WAIT_READ_MOVING_STATUS:{
-                                    DRINKOUT_INFO.module_1.Disk.movingStatus = DrinkOut_buf[5];
-                                    DRINKOUT_INFO.module_1.Disk.command_state = MOTOR_IDLE;
-                                }
-                                    break;  
-                                case MOTOR_WAIT_READ_POSITION:{
-                                    //(unsigned int)DrinkOut_buf[8]<<24) |
-                                    DRINKOUT_INFO.module_1.Disk.presentPosition = (unsigned int)(((unsigned int)DrinkOut_buf[8]<<24) | ((unsigned int)DrinkOut_buf[7]<<16) | ((unsigned int)DrinkOut_buf[6]<<8) | ((unsigned int)DrinkOut_buf[5]));
-                                    DRINKOUT_INFO.module_1.Disk.command_state = MOTOR_IDLE;
-                                }
-                                    break;      
-                                default:
-                                    break;
-                            }                           
-                            break;
-                        case MODULE_1_DOOR:
-                            switch(DRINKOUT_INFO.module_1.Door.command_state){
-                                case MOTOR_WAIT_PING:
-                                {
-                                    DRINKOUT_INFO.module_1.Door.connection = true;
-                                    DRINKOUT_INFO.module_1.Door.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                case MOTOR_WAIT_SET_PROFILE:
-                                {
-                                    DRINKOUT_INFO.module_1.Door.isProfileSet = true;
-                                    DRINKOUT_INFO.module_1.Door.command_state = MOTOR_IDLE;
-                                }
-                                    break;   
-                                case MOTOR_WAIT_ENABLE_TORQUE:
-                                {
-                                    DRINKOUT_INFO.module_1.Door.isTorqueOn = true;
-                                    DRINKOUT_INFO.module_1.Door.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                case MOTOR_WAIT_DOOR_OPEN:
-                                {
-                                    DRINKOUT_INFO.module_1.doorstate = true;
-                                    DRINKOUT_INFO.module_1.Door.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                case MOTOR_WAIT_DOOR_CLOSE:
-                                {
-                                    DRINKOUT_INFO.module_1.doorstate = false;
-                                    DRINKOUT_INFO.module_1.Door.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                case MOTOR_WAIT_READ_MOVING_STATUS:{
-                                    DRINKOUT_INFO.module_1.Door.movingStatus = DrinkOut_buf[5];
-                                    DRINKOUT_INFO.module_1.Door.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                case MOTOR_WAIT_READ_POSITION:{
-                                    //(unsigned int)DrinkOut_buf[8]<<24) |
-                                    DRINKOUT_INFO.module_1.Door.presentPosition = (unsigned int)(((unsigned int)DrinkOut_buf[8]<<24) | ((unsigned int)DrinkOut_buf[7]<<16) | ((unsigned int)DrinkOut_buf[6]<<8) | ((unsigned int)DrinkOut_buf[5]));
-                                    DRINKOUT_INFO.module_1.Door.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                default:
-                                    break;
-                            }
-                            break;
-                        case MODULE_2_DISK:
-                            switch(DRINKOUT_INFO.module_2.Disk.command_state){
-                                case MOTOR_WAIT_PING:{
-                                    DRINKOUT_INFO.module_2.Disk.connection = true;
-                                    DRINKOUT_INFO.module_2.Disk.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                case MOTOR_WAIT_SET_PROFILE:{
-                                    DRINKOUT_INFO.module_2.Disk.isProfileSet = true;
-                                    DRINKOUT_INFO.module_2.Disk.command_state = MOTOR_IDLE;
-                                }
-                                    break;      
-                                case MOTOR_WAIT_SET_PROFILE_ACELE:{
-                                    DRINKOUT_INFO.module_2.Disk.isProfileAceleSet = true;
-                                    DRINKOUT_INFO.module_2.Disk.command_state = MOTOR_IDLE;
-                                }
-                                    break;            
-                                case MOTOR_WAIT_SET_PP_GAIN:{
-                                    DRINKOUT_INFO.module_2.Disk.isPPGainSet = true;
-                                    DRINKOUT_INFO.module_2.Disk.command_state = MOTOR_IDLE;
-                                }
-                                    break;    
-                                case MOTOR_WAIT_SET_PD_GAIN:{
-                                    DRINKOUT_INFO.module_2.Disk.isPDGainSet = true;
-                                    DRINKOUT_INFO.module_2.Disk.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                case MOTOR_WAIT_ENABLE_TORQUE:{
-                                    DRINKOUT_INFO.module_2.Disk.isTorqueOn = true;
-                                    DRINKOUT_INFO.module_2.Disk.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                case MOTOR_WAIT_GO_POS1:{
-                                    DRINKOUT_INFO.module_2.currentPosition = 1;
-                                    DRINKOUT_INFO.module_2.Disk.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                case MOTOR_WAIT_GO_POS2:{
-                                    DRINKOUT_INFO.module_2.currentPosition = 2;
-                                    DRINKOUT_INFO.module_2.Disk.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                case MOTOR_WAIT_GO_POS3:{
-                                    DRINKOUT_INFO.module_2.currentPosition = 3;
-                                    DRINKOUT_INFO.module_2.Disk.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                case MOTOR_WAIT_READ_MOVING_STATUS:{
-                                    DRINKOUT_INFO.module_2.Disk.movingStatus = DrinkOut_buf[5];
-                                    DRINKOUT_INFO.module_2.Disk.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                case MOTOR_WAIT_READ_POSITION:{
-                                    DRINKOUT_INFO.module_2.Disk.presentPosition = (unsigned int)(((unsigned int)DrinkOut_buf[8]<<24) | ((unsigned int)DrinkOut_buf[7]<<16) | ((unsigned int)DrinkOut_buf[6]<<8) | ((unsigned int)DrinkOut_buf[5]));
-                                    DRINKOUT_INFO.module_2.Disk.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                default:
-                                    break;
-                            }                           
-                            break;
-                        case MODULE_2_DOOR:
-                            switch(DRINKOUT_INFO.module_2.Door.command_state){
-                                case MOTOR_WAIT_PING:
-                                {
-                                    DRINKOUT_INFO.module_2.Door.connection = true;
-                                    DRINKOUT_INFO.module_2.Door.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                case MOTOR_WAIT_SET_PROFILE:
-                                {
-                                    DRINKOUT_INFO.module_2.Door.isProfileSet = true;
-                                    DRINKOUT_INFO.module_2.Door.command_state = MOTOR_IDLE;
-                                }
-                                    break;   
-                                case MOTOR_WAIT_ENABLE_TORQUE:
-                                {
-                                    DRINKOUT_INFO.module_2.Door.isTorqueOn = true;
-                                    DRINKOUT_INFO.module_2.Door.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                case MOTOR_WAIT_DOOR_OPEN:
-                                {
-                                    DRINKOUT_INFO.module_2.doorstate = true;
-                                    DRINKOUT_INFO.module_2.Door.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                case MOTOR_WAIT_DOOR_CLOSE:
-                                {
-                                    DRINKOUT_INFO.module_2.doorstate = false;
-                                    DRINKOUT_INFO.module_2.Door.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                case MOTOR_WAIT_READ_MOVING_STATUS:{
-                                    DRINKOUT_INFO.module_2.Door.movingStatus = DrinkOut_buf[5];
-                                    DRINKOUT_INFO.module_2.Door.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                case MOTOR_WAIT_READ_POSITION:{
-                                    DRINKOUT_INFO.module_2.Door.presentPosition = (unsigned int)(((unsigned int)DrinkOut_buf[8]<<24) | ((unsigned int)DrinkOut_buf[7]<<16) | ((unsigned int)DrinkOut_buf[6]<<8) | ((unsigned int)DrinkOut_buf[5]));
-                                    DRINKOUT_INFO.module_2.Door.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                default:
-                                    break;
-                            }
-                            break;
-                        case MODULE_3_DISK:
-                            switch(DRINKOUT_INFO.module_3.Disk.command_state){
-                                case MOTOR_WAIT_PING:{
-                                    DRINKOUT_INFO.module_3.Disk.connection = true;
-                                    DRINKOUT_INFO.module_3.Disk.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                case MOTOR_WAIT_SET_PROFILE:{
-                                    DRINKOUT_INFO.module_3.Disk.isProfileSet = true;
-                                    DRINKOUT_INFO.module_3.Disk.command_state = MOTOR_IDLE;
-                                }
-                                    break;      
-                                case MOTOR_WAIT_SET_PROFILE_ACELE:{
-                                    DRINKOUT_INFO.module_3.Disk.isProfileAceleSet = true;
-                                    DRINKOUT_INFO.module_3.Disk.command_state = MOTOR_IDLE;
-                                }
-                                    break;            
-                                case MOTOR_WAIT_SET_PP_GAIN:{
-                                    DRINKOUT_INFO.module_3.Disk.isPPGainSet = true;
-                                    DRINKOUT_INFO.module_3.Disk.command_state = MOTOR_IDLE;
-                                }
-                                    break;    
-                                case MOTOR_WAIT_SET_PD_GAIN:{
-                                    DRINKOUT_INFO.module_3.Disk.isPDGainSet = true;
-                                    DRINKOUT_INFO.module_3.Disk.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                case MOTOR_WAIT_ENABLE_TORQUE:{
-                                    DRINKOUT_INFO.module_3.Disk.isTorqueOn = true;
-                                    DRINKOUT_INFO.module_3.Disk.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                case MOTOR_WAIT_GO_POS1:{
-                                    DRINKOUT_INFO.module_3.currentPosition = 1;
-                                    DRINKOUT_INFO.module_3.Disk.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                case MOTOR_WAIT_GO_POS2:{
-                                    DRINKOUT_INFO.module_3.currentPosition = 2;
-                                    DRINKOUT_INFO.module_3.Disk.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                case MOTOR_WAIT_GO_POS3:{
-                                    DRINKOUT_INFO.module_3.currentPosition = 3;
-                                    DRINKOUT_INFO.module_3.Disk.command_state = MOTOR_IDLE;
-                                }
-                                    break;  
-                                case MOTOR_WAIT_READ_MOVING_STATUS:{
-                                    DRINKOUT_INFO.module_3.Disk.movingStatus = DrinkOut_buf[5];
-                                    DRINKOUT_INFO.module_3.Disk.command_state = MOTOR_IDLE;
-                                }
-                                    break;  
-                                case MOTOR_WAIT_READ_POSITION:{
-                                    //(unsigned int)DrinkOut_buf[8]<<24) |
-                                    DRINKOUT_INFO.module_3.Disk.presentPosition = (unsigned int)(((unsigned int)DrinkOut_buf[8]<<24) | ((unsigned int)DrinkOut_buf[7]<<16) | ((unsigned int)DrinkOut_buf[6]<<8) | ((unsigned int)DrinkOut_buf[5]));
-                                    DRINKOUT_INFO.module_3.Disk.command_state = MOTOR_IDLE;
-                                }
-                                    break;      
-                                default:
-                                    break;
-                            }    
-                            break;
-                        case MODULE_3_DOOR:
-                            switch(DRINKOUT_INFO.module_3.Door.command_state){
-                                case MOTOR_WAIT_PING:
-                                {
-                                    DRINKOUT_INFO.module_3.Door.connection = true;
-                                    DRINKOUT_INFO.module_3.Door.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                case MOTOR_WAIT_SET_PROFILE:
-                                {
-                                    DRINKOUT_INFO.module_3.Door.isProfileSet = true;
-                                    DRINKOUT_INFO.module_3.Door.command_state = MOTOR_IDLE;
-                                }
-                                    break;   
-                                case MOTOR_WAIT_ENABLE_TORQUE:
-                                {
-                                    DRINKOUT_INFO.module_3.Door.isTorqueOn = true;
-                                    DRINKOUT_INFO.module_3.Door.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                case MOTOR_WAIT_DOOR_OPEN:
-                                {
-                                    DRINKOUT_INFO.module_3.doorstate = true;
-                                    DRINKOUT_INFO.module_3.Door.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                case MOTOR_WAIT_DOOR_CLOSE:
-                                {
-                                    DRINKOUT_INFO.module_3.doorstate = false;
-                                    DRINKOUT_INFO.module_3.Door.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                case MOTOR_WAIT_READ_MOVING_STATUS:{
-                                    DRINKOUT_INFO.module_3.Door.movingStatus = DrinkOut_buf[5];
-                                    DRINKOUT_INFO.module_3.Door.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                case MOTOR_WAIT_READ_POSITION:{
-                                    //(unsigned int)DrinkOut_buf[8]<<24) |
-                                    DRINKOUT_INFO.module_3.Door.presentPosition = (unsigned int)(((unsigned int)DrinkOut_buf[8]<<24) | ((unsigned int)DrinkOut_buf[7]<<16) | ((unsigned int)DrinkOut_buf[6]<<8) | ((unsigned int)DrinkOut_buf[5]));
-                                    DRINKOUT_INFO.module_3.Door.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                default:
-                                    break;
-                            }
-                            break;
-                        case MODULE_4_DISK:
-                            switch(DRINKOUT_INFO.module_4.Disk.command_state){
-                                case MOTOR_WAIT_PING:{
-                                    DRINKOUT_INFO.module_4.Disk.connection = true;
-                                    DRINKOUT_INFO.module_4.Disk.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                case MOTOR_WAIT_SET_PROFILE:{
-                                    DRINKOUT_INFO.module_4.Disk.isProfileSet = true;
-                                    DRINKOUT_INFO.module_4.Disk.command_state = MOTOR_IDLE;
-                                }
-                                    break;      
-                                case MOTOR_WAIT_SET_PROFILE_ACELE:{
-                                    DRINKOUT_INFO.module_4.Disk.isProfileAceleSet = true;
-                                    DRINKOUT_INFO.module_4.Disk.command_state = MOTOR_IDLE;
-                                }
-                                    break;            
-                                case MOTOR_WAIT_SET_PP_GAIN:{
-                                    DRINKOUT_INFO.module_4.Disk.isPPGainSet = true;
-                                    DRINKOUT_INFO.module_4.Disk.command_state = MOTOR_IDLE;
-                                }
-                                    break;    
-                                case MOTOR_WAIT_SET_PD_GAIN:{
-                                    DRINKOUT_INFO.module_4.Disk.isPDGainSet = true;
-                                    DRINKOUT_INFO.module_4.Disk.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                case MOTOR_WAIT_ENABLE_TORQUE:{
-                                    DRINKOUT_INFO.module_4.Disk.isTorqueOn = true;
-                                    DRINKOUT_INFO.module_4.Disk.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                case MOTOR_WAIT_GO_POS1:{
-                                    DRINKOUT_INFO.module_4.currentPosition = 1;
-                                    DRINKOUT_INFO.module_4.Disk.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                case MOTOR_WAIT_GO_POS2:{
-                                    DRINKOUT_INFO.module_4.currentPosition = 2;
-                                    DRINKOUT_INFO.module_4.Disk.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                case MOTOR_WAIT_GO_POS3:{
-                                    DRINKOUT_INFO.module_4.currentPosition = 3;
-                                    DRINKOUT_INFO.module_4.Disk.command_state = MOTOR_IDLE;
-                                }
-                                    break;  
-                                case MOTOR_WAIT_READ_MOVING_STATUS:{
-                                    DRINKOUT_INFO.module_4.Disk.movingStatus = DrinkOut_buf[5];
-                                    DRINKOUT_INFO.module_4.Disk.command_state = MOTOR_IDLE;
-                                }
-                                    break;  
-                                case MOTOR_WAIT_READ_POSITION:{
-                                    //(unsigned int)DrinkOut_buf[8]<<24) |
-                                    DRINKOUT_INFO.module_4.Disk.presentPosition = (unsigned int)(((unsigned int)DrinkOut_buf[8]<<24) | ((unsigned int)DrinkOut_buf[7]<<16) | ((unsigned int)DrinkOut_buf[6]<<8) | ((unsigned int)DrinkOut_buf[5]));
-                                    DRINKOUT_INFO.module_4.Disk.command_state = MOTOR_IDLE;
-                                }
-                                    break;      
-                                default:
-                                    break;
-                            }                        
-                            break;    
-                        case MODULE_4_DOOR:
-                            switch(DRINKOUT_INFO.module_4.Door.command_state){
-                                case MOTOR_WAIT_PING:
-                                {
-                                    DRINKOUT_INFO.module_4.Door.connection = true;
-                                    DRINKOUT_INFO.module_4.Door.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                case MOTOR_WAIT_SET_PROFILE:
-                                {
-                                    DRINKOUT_INFO.module_4.Door.isProfileSet = true;
-                                    DRINKOUT_INFO.module_4.Door.command_state = MOTOR_IDLE;
-                                }
-                                    break;   
-                                case MOTOR_WAIT_ENABLE_TORQUE:
-                                {
-                                    DRINKOUT_INFO.module_4.Door.isTorqueOn = true;
-                                    DRINKOUT_INFO.module_4.Door.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                case MOTOR_WAIT_DOOR_OPEN:
-                                {
-                                    DRINKOUT_INFO.module_4.doorstate = true;
-                                    DRINKOUT_INFO.module_4.Door.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                case MOTOR_WAIT_DOOR_CLOSE:
-                                {
-                                    DRINKOUT_INFO.module_4.doorstate = false;
-                                    DRINKOUT_INFO.module_4.Door.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                case MOTOR_WAIT_READ_MOVING_STATUS:{
-                                    DRINKOUT_INFO.module_4.Door.movingStatus = DrinkOut_buf[5];
-                                    DRINKOUT_INFO.module_4.Door.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                case MOTOR_WAIT_READ_POSITION:{
-                                    //(unsigned int)DrinkOut_buf[8]<<24) |
-                                    DRINKOUT_INFO.module_4.Door.presentPosition = (unsigned int)(((unsigned int)DrinkOut_buf[8]<<24) | ((unsigned int)DrinkOut_buf[7]<<16) | ((unsigned int)DrinkOut_buf[6]<<8) | ((unsigned int)DrinkOut_buf[5]));
-                                    DRINKOUT_INFO.module_4.Door.command_state = MOTOR_IDLE;
-                                }
-                                    break;
-                                default:
-                                    break;
-                            }
-                            break;
-                        case 9:{
-                            if(ICE_VALVE.motor.command_state == MOTOR_WAIT_PING){
-                                ICE_VALVE.motor.connection = true;
-                                ICE_VALVE.motor.command_state = MOTOR_IDLE;
-                            }
-                            else if(ICE_VALVE.motor.command_state == MOTOR_WAIT_SET_PROFILE){
-                                ICE_VALVE.motor.isProfileSet = true;
-                                ICE_VALVE.motor.command_state = MOTOR_IDLE;
-                            }
-                            else if(ICE_VALVE.motor.command_state == MOTOR_WAIT_ENABLE_TORQUE){
-                                ICE_VALVE.motor.isTorqueOn = true;
-                                ICE_VALVE.motor.command_state = MOTOR_IDLE;
-                            }
-                            else if(ICE_VALVE.motor.command_state == MOTOR_WAIT_DOOR_OPEN){
-                                ICE_VALVE.lock_state = false;
-                                ICE_VALVE.motor.command_state = MOTOR_IDLE;
-                            }
-                            else if(ICE_VALVE.motor.command_state == MOTOR_WAIT_DOOR_CLOSE){
-                                ICE_VALVE.lock_state = true;
-                                ICE_VALVE.motor.command_state = MOTOR_IDLE;
-                            }
-                            
+                    int motor_id = DrinkOut_buf[0];
+                    int module_num = (motor_id-1)/2;
+                    if(motor_id%2 == 0){
+                        // door
+                        switch(DRINKOUT_INFO.module[module_num].Door.command_state){
+                            case MOTOR_WAIT_PING:
+                                DRINKOUT_INFO.module[module_num].Door.connection = true;
+                                DRINKOUT_INFO.module[module_num].Door.command_state = MOTOR_IDLE;
+                                break;
+                            case MOTOR_WAIT_SET_PROFILE:
+                                DRINKOUT_INFO.module[module_num].Door.isProfileSet = true;
+                                DRINKOUT_INFO.module[module_num].Door.command_state = MOTOR_IDLE;
+                                break;   
+                            case MOTOR_WAIT_ENABLE_TORQUE:
+                                DRINKOUT_INFO.module[module_num].Door.isTorqueOn = true;
+                                DRINKOUT_INFO.module[module_num].Door.command_state = MOTOR_IDLE;
+                                break;
+                            case MOTOR_WAIT_DOOR_OPEN:
+                                DRINKOUT_INFO.module[module_num].doorstate = true;
+                                DRINKOUT_INFO.module[module_num].Door.command_state = MOTOR_IDLE;
+                                break;
+                            case MOTOR_WAIT_DOOR_CLOSE:
+                                DRINKOUT_INFO.module[module_num].doorstate = false;
+                                DRINKOUT_INFO.module[module_num].Door.command_state = MOTOR_IDLE;
+                                break;
+                            case MOTOR_WAIT_READ_MOVING_STATUS:
+                                DRINKOUT_INFO.module[module_num].Door.movingStatus = DrinkOut_buf[5];
+                                DRINKOUT_INFO.module[module_num].Door.command_state = MOTOR_IDLE;
+                                break;
+                            case MOTOR_WAIT_READ_POSITION:
+                                DRINKOUT_INFO.module[module_num].Door.presentPosition = (unsigned int)(((unsigned int)DrinkOut_buf[8]<<24) | ((unsigned int)DrinkOut_buf[7]<<16) | ((unsigned int)DrinkOut_buf[6]<<8) | ((unsigned int)DrinkOut_buf[5]));
+                                DRINKOUT_INFO.module[module_num].Door.command_state = MOTOR_IDLE;
+                                break;
+                            default:
+                                break;
                         }
-                            break;
-                        default:
-                            break;
+                    }else{
+                        // disk
+                        switch(DRINKOUT_INFO.module[module_num].Disk.command_state){
+                            case MOTOR_WAIT_PING:
+                                DRINKOUT_INFO.module[module_num].Disk.connection = true;
+                                DRINKOUT_INFO.module[module_num].Disk.command_state = MOTOR_IDLE;
+                                break;
+                            case MOTOR_WAIT_SET_PROFILE:
+                                DRINKOUT_INFO.module[module_num].Disk.isProfileSet = true;
+                                DRINKOUT_INFO.module[module_num].Disk.command_state = MOTOR_IDLE;
+                                break;      
+                            case MOTOR_WAIT_SET_PROFILE_ACELE:
+                                DRINKOUT_INFO.module[module_num].Disk.isProfileAceleSet = true;
+                                DRINKOUT_INFO.module[module_num].Disk.command_state = MOTOR_IDLE;
+                                break;            
+                            case MOTOR_WAIT_SET_PP_GAIN:
+                                DRINKOUT_INFO.module[module_num].Disk.isPPGainSet = true;
+                                DRINKOUT_INFO.module[module_num].Disk.command_state = MOTOR_IDLE;
+                                break;    
+                            case MOTOR_WAIT_SET_PD_GAIN:
+                                DRINKOUT_INFO.module[module_num].Disk.isPDGainSet = true;
+                                DRINKOUT_INFO.module[module_num].Disk.command_state = MOTOR_IDLE;
+                                break;
+                            case MOTOR_WAIT_ENABLE_TORQUE:
+                                DRINKOUT_INFO.module[module_num].Disk.isTorqueOn = true;
+                                DRINKOUT_INFO.module[module_num].Disk.command_state = MOTOR_IDLE;
+                                break;
+                            case MOTOR_WAIT_GO_POS1:
+                                DRINKOUT_INFO.module[module_num].currentPosition = 1;
+                                DRINKOUT_INFO.module[module_num].Disk.command_state = MOTOR_IDLE;
+                                break;
+                            case MOTOR_WAIT_GO_POS2:
+                                DRINKOUT_INFO.module[module_num].currentPosition = 2;
+                                DRINKOUT_INFO.module[module_num].Disk.command_state = MOTOR_IDLE;
+                                break;
+                            case MOTOR_WAIT_GO_POS3:
+                                DRINKOUT_INFO.module[module_num].currentPosition = 3;
+                                DRINKOUT_INFO.module[module_num].Disk.command_state = MOTOR_IDLE;
+                                break;
+                            case MOTOR_WAIT_READ_MOVING_STATUS:
+                                DRINKOUT_INFO.module[module_num].Disk.movingStatus = DrinkOut_buf[5];
+                                DRINKOUT_INFO.module[module_num].Disk.command_state = MOTOR_IDLE;
+                                break;  
+                            case MOTOR_WAIT_READ_POSITION:
+                                DRINKOUT_INFO.module[module_num].Disk.presentPosition = (unsigned int)(((unsigned int)DrinkOut_buf[8]<<24) | ((unsigned int)DrinkOut_buf[7]<<16) | ((unsigned int)DrinkOut_buf[6]<<8) | ((unsigned int)DrinkOut_buf[5]));
+                                DRINKOUT_INFO.module[module_num].Disk.command_state = MOTOR_IDLE;
+                                break;      
+                            default:
+                                break;
+                        }
                     }
                     DrinkOut_state = 0;
-                }                    
-                break;
-          
+                    break;
+                }
                 default:
                     break;            
             }
@@ -2177,6 +1167,31 @@ void UART2Function(){
         }
         
     }
+    
+    
+//    case 9:{
+//        if(ICE_VALVE.motor.command_state == MOTOR_WAIT_PING){
+//            ICE_VALVE.motor.connection = true;
+//            ICE_VALVE.motor.command_state = MOTOR_IDLE;
+//        }
+//        else if(ICE_VALVE.motor.command_state == MOTOR_WAIT_SET_PROFILE){
+//            ICE_VALVE.motor.isProfileSet = true;
+//            ICE_VALVE.motor.command_state = MOTOR_IDLE;
+//        }
+//        else if(ICE_VALVE.motor.command_state == MOTOR_WAIT_ENABLE_TORQUE){
+//            ICE_VALVE.motor.isTorqueOn = true;
+//            ICE_VALVE.motor.command_state = MOTOR_IDLE;
+//        }
+//        else if(ICE_VALVE.motor.command_state == MOTOR_WAIT_DOOR_OPEN){
+//            ICE_VALVE.lock_state = false;
+//            ICE_VALVE.motor.command_state = MOTOR_IDLE;
+//        }
+//        else if(ICE_VALVE.motor.command_state == MOTOR_WAIT_DOOR_CLOSE){
+//            ICE_VALVE.lock_state = true;
+//            ICE_VALVE.motor.command_state = MOTOR_IDLE;
+//        }
+//
+//    }
 }
 
 
@@ -2339,19 +1354,23 @@ void UART4Function(){
                     if(temp_ch == 'a'){
                         // match STX
                         barcode_state = 1;
-                        barcode_index = 0;
+                        barcode_index = 1;
                     }
                     break;
-                case 1:{
+                case 1:
+                {
                     if((temp_ch != 'z') && barcode_index < BARCODE_SIZE){
                         barcode_buf[barcode_index] = temp_ch;
                         barcode_index++;
                         
                     }else{
                         int i;
-                        for(i =barcode_index; i<BARCODE_SIZE; i++){
+                        for(i = barcode_index; i<BARCODE_SIZE; i++){
                             barcode_buf[i] = 0;
                         }
+                        // increase BARCODE_CNT
+                        barcode_buf[0] = BARCODE_CNT;
+                        BARCODE_CNT = (++BARCODE_CNT)%256;
                         
                         int idx = 0;
                         for(idx=0; idx<BARCODE_SIZE; idx++){
@@ -2385,77 +1404,12 @@ void __ISR(_UART4_RX_VECTOR, ipl4AUTO) Handler_UART4_RX(void){
 
 
 void SetMotorCommandState(unsigned char id, unsigned char command){
-    switch(id){
-        case 1:{
-            
-            if(command == 1) {      DRINKOUT_INFO.module_1.Disk.command_state = MOTOR_WAIT_GO_POS1;}
-            else if(command == 2) { DRINKOUT_INFO.module_1.Disk.command_state = MOTOR_WAIT_GO_POS2;}
-            else if(command == 3) { DRINKOUT_INFO.module_1.Disk.command_state = MOTOR_WAIT_GO_POS3;}
-            else if(command == 6) { DRINKOUT_INFO.module_1.Disk.command_state = MOTOR_WAIT_READ_MOVING_STATUS;}
-            else if(command == 7) { DRINKOUT_INFO.module_1.Disk.command_state = MOTOR_WAIT_READ_POSITION;}
-        }
-        break;
-        case 2:{
-            
-            if(command == 4) {      DRINKOUT_INFO.module_1.Door.command_state = MOTOR_WAIT_DOOR_OPEN;}
-            else if(command == 5) { 
-                DRINKOUT_INFO.module_1.Door.command_state = MOTOR_WAIT_DOOR_CLOSE;}
-            else if(command == 6) { DRINKOUT_INFO.module_1.Door.command_state = MOTOR_WAIT_READ_MOVING_STATUS;}
-            else if(command == 7) { DRINKOUT_INFO.module_1.Door.command_state = MOTOR_WAIT_READ_POSITION;}
-        }
-        break;
-        case 3:{
-            
-            if(command == 1) {      DRINKOUT_INFO.module_2.Disk.command_state = MOTOR_WAIT_GO_POS1;}
-            else if(command == 2) { DRINKOUT_INFO.module_2.Disk.command_state = MOTOR_WAIT_GO_POS2;}
-            else if(command == 3) { DRINKOUT_INFO.module_2.Disk.command_state = MOTOR_WAIT_GO_POS3;}
-            else if(command == 6) { DRINKOUT_INFO.module_2.Disk.command_state = MOTOR_WAIT_READ_MOVING_STATUS;}
-            else if(command == 7) { DRINKOUT_INFO.module_2.Disk.command_state = MOTOR_WAIT_READ_POSITION;}
-        }
-        break;
-        case 4:{
-            
-            if(command == 4) {      DRINKOUT_INFO.module_2.Door.command_state = MOTOR_WAIT_DOOR_OPEN;}
-            else if(command == 5) { 
-                DRINKOUT_INFO.module_2.Door.command_state = MOTOR_WAIT_DOOR_CLOSE;}
-            else if(command == 6) { DRINKOUT_INFO.module_2.Door.command_state = MOTOR_WAIT_READ_MOVING_STATUS;}
-            else if(command == 7) { DRINKOUT_INFO.module_2.Door.command_state = MOTOR_WAIT_READ_POSITION;}
-        }
-        break;
-        case 5:{
-            
-            if(command == 1) {      DRINKOUT_INFO.module_3.Disk.command_state = MOTOR_WAIT_GO_POS1;}
-            else if(command == 2) { DRINKOUT_INFO.module_3.Disk.command_state = MOTOR_WAIT_GO_POS2;}
-            else if(command == 3) { DRINKOUT_INFO.module_3.Disk.command_state = MOTOR_WAIT_GO_POS3;}
-            else if(command == 6) { DRINKOUT_INFO.module_3.Disk.command_state = MOTOR_WAIT_READ_MOVING_STATUS;}
-            else if(command == 7) { DRINKOUT_INFO.module_3.Disk.command_state = MOTOR_WAIT_READ_POSITION;}
-        }
-        break;
-        case 6:{
-           
-            if(command == 4) {      DRINKOUT_INFO.module_3.Door.command_state = MOTOR_WAIT_DOOR_OPEN;}
-            else if(command == 5) { 
-                DRINKOUT_INFO.module_3.Door.command_state = MOTOR_WAIT_DOOR_CLOSE;}
-            else if(command == 6) { DRINKOUT_INFO.module_3.Door.command_state = MOTOR_WAIT_READ_MOVING_STATUS;}
-            else if(command == 7) { DRINKOUT_INFO.module_3.Door.command_state = MOTOR_WAIT_READ_POSITION;}
-        }
-        break;
-        case 7:{
-            
-            if(command == 1) {      DRINKOUT_INFO.module_4.Disk.command_state = MOTOR_WAIT_GO_POS1;}
-            else if(command == 2) { DRINKOUT_INFO.module_4.Disk.command_state = MOTOR_WAIT_GO_POS2;}
-            else if(command == 3) { DRINKOUT_INFO.module_4.Disk.command_state = MOTOR_WAIT_GO_POS3;}
-            else if(command == 6) { DRINKOUT_INFO.module_4.Disk.command_state = MOTOR_WAIT_READ_MOVING_STATUS;}
-            else if(command == 7) { DRINKOUT_INFO.module_4.Disk.command_state = MOTOR_WAIT_READ_POSITION;}
-        }
-        break;
-        case 8:{
-            
-            if(command == 4) {      DRINKOUT_INFO.module_4.Door.command_state = MOTOR_WAIT_DOOR_OPEN;}
-            else if(command == 5) { DRINKOUT_INFO.module_4.Door.command_state = MOTOR_WAIT_DOOR_CLOSE;}
-            else if(command == 6) { DRINKOUT_INFO.module_4.Door.command_state = MOTOR_WAIT_READ_MOVING_STATUS;}
-            else if(command == 7) { DRINKOUT_INFO.module_4.Door.command_state = MOTOR_WAIT_READ_POSITION;}
-        }
-        break;
+    int module_num = id/2;
+    if(id%2 == 0){
+        // door
+        DRINKOUT_INFO.module[module_num].Door.command_state = command;
+    }else{
+        // disk
+        DRINKOUT_INFO.module[module_num].Disk.command_state = command;
     }
 }
