@@ -279,7 +279,7 @@ extern unsigned char BARCODE_DATA[BARCODE_SIZE];
 extern int BARCODE_LOCK;
 
 extern unsigned char DIO[4];
-extern unsigned char DIO_1[4];
+extern unsigned char TeaSensor[4];
 
 
 void LAN2CAN_Initialize(void);

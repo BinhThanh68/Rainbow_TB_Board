@@ -38,24 +38,41 @@ void INIT_PINS(void){
     
     
     if(BOARD_ID==0){
-        //test for hx711
-        TRISBbits.TRISB2 = 0;   // Digital out 0
-        TRISBbits.TRISB3 = 1;   // Digital In 1
-        //output for testing load cell
-        TRISBbits.TRISB5 = 0;   // Digital out
-        //ice waste water sensor
-        TRISBbits.TRISB4 = 1;   // Digital in 
-//        //pull down only for ice water sensor
-//        CNPDBbits.CNPDB4 = 1;
-        //pull up
-        CNPUBbits.CNPUB4 = 1;
-    }else if(BOARD_ID==1){
+        // Outlet Sensor (Din) * 4
+        // Relay (Dout) * 2
         TRISBbits.TRISB2 = 1;   // Digital In 0
         TRISBbits.TRISB3 = 1;   // Digital In 1
         TRISBbits.TRISB4 = 1;   // Digital In 2 
         TRISBbits.TRISB5 = 1;   // Digital In 3
+        
+    }else if(BOARD_ID==1){
+        // Water Leveler
+        TRISBbits.TRISB2 = 1;   // Digital In 0
+        TRISBbits.TRISB3 = 1;   // Digital In 1
+        TRISBbits.TRISB4 = 1;   // Digital In 2 
+        TRISBbits.TRISB5 = 1;   // Digital In 3
+        //        //pull down only for ice water sensor
+//        CNPDBbits.CNPDB4 = 1;
+        //pull up
+        CNPUBbits.CNPUB4 = 1;
+    }else if(BOARD_ID==2){
+        // Load Cell (Digital) * 2
+        // Tea Leveler (Din) * 4
+//        TRISBbits.TRISB2 = 1;   // Digital in
+//        TRISBbits.TRISB3 = 1;   // Digital in
+//        TRISBbits.TRISB4 = 1;   // Digital in
+//        TRISBbits.TRISB5 = 1;   // Digital in
+
+//        TRISGbits.TRISG6 = 0;   // Digital out (Load Cell Clock)
+//        TRISGbits.TRISG7 = 1;   // Digital In (Load Cell Data)
+        
+        TRISBbits.TRISB2 = 0;   // Digital out (Load Cell Clock)
+        TRISBbits.TRISB3 = 1;   // Digital In (Load Cell Data)
+        
+        TRISBbits.TRISB4 = 0;   // Signal to Robot 
+        
     }else if(BOARD_ID==3){
-        //remote controller
+        // Remote Controller (LED * 3, Button * 4)
         TRISBbits.TRISB2 = 1;   // Digital In 0
         TRISBbits.TRISB3 = 1;   // Digital In 1
         TRISBbits.TRISB4 = 1;   // Digital In 2 
@@ -68,7 +85,7 @@ void INIT_PINS(void){
         TRISGbits.TRISG8 = 0;   // Digital In 0
         TRISFbits.TRISF5 = 0;   // Digital In 1
         TRISGbits.TRISG9 = 0;   // Digital In 2 
-        TRISGbits.TRISG6 = 0;   // Digital In 3
+        
     }
     
     
@@ -79,6 +96,8 @@ void INIT_PINS(void){
     
    
     
+    // Timer2 : 16bit Timer (?ms per tick)
+    // Timer3 : 16bit Timer
     //timer B (2 and 3)
     T2CONbits.ON = 0;
     T3CONbits.ON = 0;

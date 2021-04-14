@@ -1059,6 +1059,16 @@ void RemoteController_LED_Operation(unsigned char led, unsigned char state){
     }
 }
 
+//void RemoteController_Control(unsigned char state){
+//    if(led == 1){
+//        PORTBbits.RB2 = state;
+//    }else if(led == 2){
+//       PORTBbits.RB4 = state;
+//    }else if(led == 3){
+//        PORTBbits.RB6 = state;
+//    }
+//}
+
 
 unsigned short update_crc(unsigned short crc_accum, unsigned char *data_blk_ptr, unsigned short data_blk_size)
 {

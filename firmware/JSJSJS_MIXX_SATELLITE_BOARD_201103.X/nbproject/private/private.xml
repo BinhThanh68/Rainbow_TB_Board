@@ -28,6 +28,7 @@
             <file>file:/C:/microchip/harmony/v2_06/framework/system/tmr/sys_tmr.h</file>
             <file>file:/C:/Users/binht/Documents/Rainbow_TB_Board_Firmware/firmware/src/main.c</file>
             <file>file:/C:/microchip/harmony/v2_06/framework/osal/osal_impl_basic.h</file>
+            <file>file:/C:/microchip/harmony/v2_06/framework/tcpip/snmp.h</file>
             <file>file:/C:/microchip/harmony/v2_06/framework/driver/miim/src/dynamic/drv_miim.c</file>
         </group>
     </open-files>

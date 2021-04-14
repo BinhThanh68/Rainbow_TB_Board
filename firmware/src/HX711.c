@@ -4,6 +4,13 @@
 #include <stdio.h>
 
 
+#define LOAD_CELL_CLOCK     LATBbits.LATB2
+#define LOAD_CELL_DATA      PORTBbits.RB3
+
+//#define LOAD_CELL_CLOCK     LATGbits.LATG6
+//#define LOAD_CELL_DATA      PORTGbits.RG7
+
+
 #define MSBFIRST 0
 #define LSBFIRST 1
 
@@ -62,7 +69,7 @@ void HX711_begin(unsigned char gain) {
 }
 
 int HX711_is_ready() {
-	return (PORTBbits.RB3 == 0);
+	return (LOAD_CELL_DATA == 0);
 }
 
 void HX711_set_gain(unsigned char gain) {
@@ -141,12 +148,12 @@ long HX711_read() {
 	// Set the channel and the gain factor for the next reading using the clock pin.
     unsigned int i, k=0, l=0;
 	for (i = 0; i < GAIN; i++) {
-        LATBbits.LATB2 = 1;
+        LOAD_CELL_CLOCK = 1;
 		#if ARCH_ESPRESSIF
 		delayMicroseconds(1);
 		#endif
 //        for(k=0; k<8000; k++);
-        LATBbits.LATB2 = 0;
+        LOAD_CELL_CLOCK = 0;
 		#if ARCH_ESPRESSIF
 		delayMicroseconds(1);
 		#endif
@@ -272,12 +279,12 @@ long HX711_get_offset() {
 }
 
 void HX711_power_down() {
-	LATBbits.LATB2 = 0;
-	LATBbits.LATB2 = 1;
+	LOAD_CELL_CLOCK = 0;
+	LOAD_CELL_CLOCK = 1;
 }
 
 void HX711_power_up() {
-	LATBbits.LATB2 = 0;
+	LOAD_CELL_CLOCK = 0;
 }
 
 
@@ -286,17 +293,17 @@ uint8_t shiftIn(uint8_t bitOrder) {
     uint8_t i;
 //    unsigned int dd;
     for (i = 0; i < 8; ++i) {
-        LATBbits.LATB2 = 1;
+        LOAD_CELL_CLOCK = 1;
 //        for(dd = 0; dd < 50; dd++)
 //            ;
       
         if (bitOrder == LSBFIRST)
-            value |= (PORTBbits.RB3) << i;
+            value |= (LOAD_CELL_DATA) << i;
         else
-            value |= (PORTBbits.RB3) << (7 - i);
+            value |= (LOAD_CELL_DATA) << (7 - i);
 //        for(dd = 0; dd < 100; dd++)
 //            ;
-        LATBbits.LATB2 = 0;
+        LOAD_CELL_CLOCK = 0;
 //        for(dd = 0; dd < 150; dd++)
 //            ;
     }
