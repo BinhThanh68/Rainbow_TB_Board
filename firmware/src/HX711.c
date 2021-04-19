@@ -152,12 +152,14 @@ long HX711_read() {
 		#if ARCH_ESPRESSIF
 		delayMicroseconds(1);
 		#endif
-//        for(k=0; k<8000; k++);
+
+        for(k=0; k<200; k++)
+            ;
         LOAD_CELL_CLOCK = 0;
 		#if ARCH_ESPRESSIF
 		delayMicroseconds(1);
 		#endif
-//        for(l=0; l<8000; l++);
+        for(k=0; k<200; k++);
 	}
 
 	#if IS_FREE_RTOS
@@ -279,8 +281,13 @@ long HX711_get_offset() {
 }
 
 void HX711_power_down() {
+    unsigned int dd;
 	LOAD_CELL_CLOCK = 0;
+    for(dd = 0; dd < 200; dd++)
+            ;
 	LOAD_CELL_CLOCK = 1;
+    for(dd = 0; dd < 200; dd++)
+            ;
 }
 
 void HX711_power_up() {
@@ -291,11 +298,11 @@ void HX711_power_up() {
 uint8_t shiftIn(uint8_t bitOrder) {
     uint8_t value = 0;
     uint8_t i;
-//    unsigned int dd;
+    unsigned int dd;
     for (i = 0; i < 8; ++i) {
         LOAD_CELL_CLOCK = 1;
-//        for(dd = 0; dd < 50; dd++)
-//            ;
+        for(dd = 0; dd < 200; dd++)
+            ;
       
         if (bitOrder == LSBFIRST)
             value |= (LOAD_CELL_DATA) << i;
@@ -304,8 +311,8 @@ uint8_t shiftIn(uint8_t bitOrder) {
 //        for(dd = 0; dd < 100; dd++)
 //            ;
         LOAD_CELL_CLOCK = 0;
-//        for(dd = 0; dd < 150; dd++)
-//            ;
+        for(dd = 0; dd < 200; dd++)
+            ;
     }
     return value;  
 }

@@ -106,13 +106,14 @@ void LAN2CAN_Initialize(void) {
        LOADCELL_INFO.focusMode = 0;
        LOADCELL_INFO.start_making = 0;
        LOADCELL_INFO.threshold = 160;
+       PORTBbits.RB5 = 1;
        
        // for debug
        INIT_UART_2(9600, 1, 0);
     }else if(BOARD_ID == 3){
        PORTBbits.RB2 =1;
        PORTBbits.RB3 =1;
-       PORTBbits.RB4 =1;
+       PORTBbits.RB5 =1;
     }
 }
 
@@ -491,6 +492,7 @@ int LAN2CAN_LANDataParsing(void) {
                             break;
                         case 2:
                             LOADCELL_INFO.threshold = para1;
+                            real_threshold = para1;
                             LATBbits.LATB4 = 1;
                             break;
                         case 3:{
@@ -831,7 +833,7 @@ void LAN2CAN_TaskFunction(void){
 //                if(test%350000==0){
                 if(test%150000==0){
                     LOADCELL_INFO.data = HX711_get_units(1);   
-                    printf("%f ", LOADCELL_INFO.data);
+//                    printf("%f ", LOADCELL_INFO.data);
                 }
             }else if(LOADCELL_INFO.focusMode == 1){
                 if(test%100000==0){
@@ -847,15 +849,16 @@ void LAN2CAN_TaskFunction(void){
                 }
             }test++;
 
-            if(LOADCELL_INFO.start_making){
-                if(LOADCELL_INFO.focusMode == 0) { 
+            if((LOADCELL_INFO.start_making)){
+                if(LOADCELL_INFO.focusMode == 0) {
+                    PORTBbits.RB5 = 1;
                     LOADCELL_INFO.focusMode = 1; 
                 }
            
                 if((LOADCELL_INFO.data >= ((LOADCELL_INFO.threshold *30)/100)) && fabs(val1) < 0.00002){            
                     // time1 = ((int)(TMR3) << 16) | TMR2;
                     TMR2 = TMR3 = 0;
-                     val1 = LOADCELL_INFO.data;
+                    val1 = LOADCELL_INFO.data;
                     // printf("%f ",val1);
                 }
                 else if((LOADCELL_INFO.data > ((LOADCELL_INFO.threshold *75)/100)) && fabs(val1) >= 0.00002 && fabs(flowrate) < 0.00002){    
@@ -878,13 +881,13 @@ void LAN2CAN_TaskFunction(void){
         
                 //attention
                 if(LOADCELL_INFO.data >= real_threshold){
-                    LATBbits.LATB4 = 0;
-                    //PORTBbits.RB4 = 0;
+//                    LATBbits.LATB5 = 0;
+                    PORTBbits.RB5 = 0;
                     time1=0;time2=0;val1=0;val2=0;flowrate=0; LOADCELL_INFO.focusMode = 0; LOADCELL_INFO.start_making = 0;
                     real_threshold = LOADCELL_INFO.threshold;
                 }else{
-                    //PORTBbits.RB4 = 1;
-                    LATBbits.LATB4 = 1;
+                    PORTBbits.RB5 = 1;
+//                    LATBbits.LATB5 = 1;
                 }
         }
     }

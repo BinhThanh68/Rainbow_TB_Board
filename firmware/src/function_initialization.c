@@ -69,7 +69,7 @@ void INIT_PINS(void){
         TRISBbits.TRISB2 = 0;   // Digital out (Load Cell Clock)
         TRISBbits.TRISB3 = 1;   // Digital In (Load Cell Data)
         
-        TRISBbits.TRISB4 = 0;   // Signal to Robot 
+        TRISBbits.TRISB5 = 0;   // Signal to Robot 
         
     }else if(BOARD_ID==3){
         // Remote Controller (LED * 3, Button * 4)

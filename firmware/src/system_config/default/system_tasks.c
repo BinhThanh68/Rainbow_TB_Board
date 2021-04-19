@@ -85,7 +85,7 @@ void SYS_Tasks ( void )
 
     /* Maintain the application's state machine. */
     LAN2CAN_Tasks();
-
+    
     //just for testing remote controller
 //        PORTGbits.RG8 = 0;
 //        PORTFbits.RF5 = 0;
